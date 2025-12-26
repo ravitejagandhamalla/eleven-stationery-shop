@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    .cards {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .card {
+        background: white;
+        padding: 25px;
+        width: 260px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    .card i {
+        font-size: 45px;
+        margin-bottom: 15px;
+        color: #ff9800;
+    }
+
+    .card h3 {
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    .card p {
+        font-size: 18px;
+        margin-top: 10px;
+        color: #444;
+    }
+</style>
+
+<h1>Dashboard</h1>
+
+<div class="cards">
+    <div class="card">
+        <i class="fa-solid fa-money-bill-trend-up"></i>
+        <h3>Today's Income</h3>
+        <p>₹ {{ today_income }}</p>
+    </div>
+
+    <div class="card">
+        <i class="fa-solid fa-file-invoice-dollar"></i>
+        <h3>Today's Expense</h3>
+        <p>₹ {{ today_expense }}</p>
+    </div>
+
+    <div class="card">
+        <i class="fa-solid fa-box"></i>
+        <h3>Total Items</h3>
+        <p>{{ total_items }}</p>
+    </div>
+
+    <div class="card">
+        <i class="fa-solid fa-chart-line"></i>
+        <h3>Monthly Profit</h3>
+        <p>₹ {{ monthly_profit }}</p>
+    </div>
+</div>
+
+{% endblock %}

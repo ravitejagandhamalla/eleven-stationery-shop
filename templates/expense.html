@@ -1,0 +1,18 @@
+<!-- templates/expense.html -->
+{% extends "layout.html" %}
+{% block content %}
+  <h2>{{ "Edit Expense" if edit else "Add Expense" }}</h2>
+  <form method="post">
+    <label>Date</label><br>
+    <input type="date" name="date" required value="{{ record.date if record else '' }}"><br><br>
+
+    <label>Amount</label><br>
+    <input type="number" step="0.01" name="amount" required value="{{ record.amount if record else '' }}"><br><br>
+
+    <label>Purpose</label><br>
+    <input type="text" name="purpose" value="{{ record.purpose if record else '' }}"><br><br>
+
+    <button type="submit">{{ "Update" if edit else "Save" }}</button>
+  </form>
+  <p><a href="{{ url_for('view_records', t='expenses') }}">Back to Expense Records</a></p>
+{% endblock %}

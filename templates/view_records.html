@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>Records</h2>
+
+<form method="get" action="{{ url_for('view_records') }}">
+    <label>Type</label>
+    <select name="t">
+        <option value="both" {% if t=='both' %}selected{% endif %}>Both</option>
+        <option value="income" {% if t=='income' %}selected{% endif %}>Income</option>
+        <option value="expenses" {% if t=='expenses' %}selected{% endif %}>Expenses</option>
+    </select>
+
+    <label>Start</label>
+    <input type="date" name="start" value="{{ start or '' }}">
+
+    <label>End</label>
+    <input type="date" name="end" value="{{ end or '' }}">
+
+    <button type="submit">Filter</button>
+</form>
+
+<hr>
+
+{% if incomes %}
+<h3>Income Records</h3>
+<table>
+<tr><th>Date</th><th>Amount</th><th>Description</th><th>Actions</th></tr>
+{% for i in incomes %}
+<tr>
+    <td>{{ i.date }}</td>
+    <td>{{ i.amount }}</td>
+    <td>{{ i.description }}</td>
+    <td>
+        <a href="{{ url_for('edit_income', id=i.id) }}">Edit</a>
+        <form method="post" 
+              action="{{ url_for('delete_record', typ='income', id=i.id) }}"
+              style="display:inline;">
+            <button onclick="return confirm('Delete this income?')">Delete</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+
+{% if expenses %}
+<h3>Expense Records</h3>
+<table>
+<tr><th>Date</th><th>Amount</th><th>Purpose</th><th>Actions</th></tr>
+{% for e in expenses %}
+<tr>
+    <td>{{ e.date }}</td>
+    <td>{{ e.amount }}</td>
+    <td>{{ e.purpose }}</td>
+    <td>
+        <a href="{{ url_for('edit_expense', id=e.id) }}">Edit</a>
+        <form method="post" 
+              action="{{ url_for('delete_record', typ='expenses', id=e.id) }}"
+              style="display:inline;">
+            <button onclick="return confirm('Delete this expense?')">Delete</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% endblock %}

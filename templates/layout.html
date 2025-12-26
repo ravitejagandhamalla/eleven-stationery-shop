@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ELEVEN STATIONARY SHOP</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<header>
+  <h1>ELEVEN STATIONARY SHOP</h1>
+
+  {% if request.endpoint != 'login' %} 
+  <nav>
+      <a href="{{ url_for('index') }}">Home</a>
+      <a href="{{ url_for('income') }}">Add Income</a>
+      <a href="{{ url_for('expense') }}">Add Expense</a>
+      <a href="{{ url_for('view_records') }}">View Records</a>
+      <a href="{{ url_for('summary') }}">Summary</a>
+
+      {% if session.get('user') %}
+          | <a href="{{ url_for('logout') }}">Logout ({{ session.get('user') }})</a>
+      {% else %}
+          | <a href="{{ url_for('login') }}">Login</a>
+      {% endif %}
+  </nav>
+  <hr>
+  {% endif %}
+</header>
+
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+          <div class="flashes">
+              {% for category, msg in messages %}
+                  <div class="flash {{ category }}">{{ msg }}</div>
+              {% endfor %}
+          </div>
+      {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <hr>
+  <small>ELEVEN STATIONARY SHOP</small>
+</footer>
+
+</body>
+</html>

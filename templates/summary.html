@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h2>Summary</h2>
+
+<div class="summary-cards">
+    <div class="card">
+        <h4>Total Income</h4>
+        <p>₹{{ "%.2f"|format(total_income) }}</p>
+    </div>
+
+    <div class="card">
+        <h4>Total Expense</h4>
+        <p>₹{{ "%.2f"|format(total_expense) }}</p>
+    </div>
+
+    <div class="card">
+        <h4>Profit / Loss</h4>
+        <p>₹{{ "%.2f"|format(profit) }}</p>
+    </div>
+</div>
+
+<hr>
+
+<h3>Daily Breakdown</h3>
+
+<table>
+    <tr>
+        <th>Date</th>
+        <th>Income</th>
+        <th>Expense</th>
+        <th>Profit</th>
+    </tr>
+
+    {% for d in daily %}
+    <tr>
+        <td>{{ d.date }}</td>
+        <td>₹{{ "%.2f"|format(d.inc) }}</td>
+        <td>₹{{ "%.2f"|format(d.exp) }}</td>
+        <td>₹{{ "%.2f"|format(d.inc - d.exp) }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

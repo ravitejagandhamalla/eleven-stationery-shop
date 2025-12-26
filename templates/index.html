@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    /* WELCOME BANNER */
+    .welcome-box {
+        background: linear-gradient(120deg, #ffcc80, #ff9800);
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+    }
+
+    .welcome-box h2 {
+        font-size: 32px;
+        font-weight: 900;
+        margin-bottom: 10px;
+    }
+
+    .welcome-box p {
+        font-size: 19px;
+    }
+
+    /* DASHBOARD BUTTONS */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 25px;
+    }
+
+    .dash-card {
+        padding: 25px;
+        background: white;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: 0.3s;
+        cursor: pointer;
+    }
+
+    .dash-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+
+    .dash-card h3 {
+        margin-bottom: 10px;
+        font-size: 22px;
+        color: #ff9800;
+    }
+
+    .dash-card p {
+        font-size: 15px;
+        color: #555;
+    }
+</style>
+
+<!-- WELCOME BANNER -->
+<div class="welcome-box">
+    <h2>Welcome to ELEVEN STATIONARY SHOP</h2>
+    <p>Manage your daily shop income & expenses easily and smartly.</p>
+</div>
+
+<!-- DASHBOARD OPTIONS -->
+<div class="dashboard-grid">
+
+    <a href="{{ url_for('income') }}" style="text-decoration:none;">
+        <div class="dash-card">
+            <h3>➕ Add Income</h3>
+            <p>Record today's income smoothly.</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('expense') }}" style="text-decoration:none;">
+        <div class="dash-card">
+            <h3>➖ Add Expense</h3>
+            <p>Track your day-to-day shop expenses.</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('view_records') }}" style="text-decoration:none;">
+        <div class="dash-card">
+            <h3>📄 View Records</h3>
+            <p>View all income & expense logs.</p>
+        </div>
+    </a>
+
+    <a href="{{ url_for('summary') }}" style="text-decoration:none;">
+        <div class="dash-card">
+            <h3>📊 Summary</h3>
+            <p>Daily profit/loss breakdown and totals.</p>
+        </div>
+    </a>
+
+</div>
+
+{% endblock %}

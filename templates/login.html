@@ -1,0 +1,167 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        background: url("{{ url_for('static', filename='login_bg.jpg') }}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+    }
+
+    .overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 0;
+    }
+
+    .shop-title {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        font-size: 46px;
+        font-weight: 900;
+        color: white;
+        margin-top: 60px;
+        margin-bottom: 50px;
+        text-shadow: 3px 3px 10px rgba(0,0,0,0.7);
+        letter-spacing: 1px;
+    }
+
+    .login-wrapper {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        animation: fadeIn 0.7s ease-in-out;
+    }
+
+    .login-card {
+        width: 420px;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        text-align: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .login-card h2 {
+        font-size: 28px;
+        margin-bottom: 25px;
+        color: #ff9800;
+        font-weight: bold;
+    }
+
+    .login-card label {
+        font-size: 17px;
+        font-weight: 600;
+        display: block;
+        text-align: left;
+        margin-top: 15px;
+        color: #444;
+    }
+
+    .login-card input {
+        width: 100%;
+        padding: 14px;
+        margin-top: 8px;
+        border-radius: 10px;
+        border: 1px solid #bbb;
+        font-size: 18px;
+        transition: 0.3s;
+    }
+
+    .login-card input:focus {
+        border-color: #ff9800;
+        box-shadow: 0 0 6px rgba(255,152,0,0.7);
+        outline: none;
+    }
+
+    .login-card button {
+        width: 100%;
+        padding: 15px;
+        margin-top: 20px;
+        background: #ff9800;
+        border: none;
+        color: white;
+        font-size: 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    .login-card button:hover {
+        background: #cc7a00;
+        transform: scale(1.04);
+    }
+
+    /* Links under login */
+    .extra-links {
+        margin-top: 18px;
+        font-size: 17px;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .extra-links a {
+        color: white;
+        text-decoration: underline;
+        margin-top: 10px;
+        display: block;
+    }
+    .black-link {
+    color: black !important;
+    font-size: 18px;
+    font-weight: 600;
+    text-decoration: underline;
+    margin-top: 12px;
+    display: block;
+}
+
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-25px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="overlay"></div>
+
+<div class="shop-title">ELEVEN STATIONARY SHOP</div>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <h2>Login</h2>
+
+        <form method="POST">
+            <label>Username</label>
+            <input type="text" name="username" required>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <button type="submit">Login</button>
+        </form>
+
+        <div class="extra-links">
+    <a href="{{ url_for('change_password') }}" class="black-link">
+        Change Password?
+    </a>
+
+    <a href="{{ url_for('forgot_password') }}" class="black-link">
+        Forgot Password?
+    </a>
+</div>
+
+    </div>
+</div>
+
+{% endblock %}

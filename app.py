@@ -6,6 +6,11 @@ app.secret_key = "785752cf9871d5a9418651dbfac41b3b"
 
 
 # ---------------- LOGIN REQUIRED DECORATOR ----------------
+@app.before_request
+def require_login():
+    allowed = {"login", "forgot_password", "reset_password", "static"}
+    if request.endpoint not in allowed and "user" not in session:
+        return redirect(url_for("login"))
 
 def login_required(fn):
     def wrapper(*args, **kwargs):
@@ -17,10 +22,13 @@ def login_required(fn):
     return wrapper
 
 
+
 # ---------------- LOGIN ----------------
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    session.clear()  # 🔐 clears old cookies / sessions
+
     if request.method == "POST":
         username = request.form["username"].strip()
         password = request.form["password"].strip()
@@ -343,12 +351,37 @@ def summary():
     conn = get_db_connection()
 
     total_income = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM income"
+        "SELECT COALESCE(SUM(amount), 0) FROM income"
     ).fetchone()[0]
 
     total_expense = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM expenses"
+        "SELECT COALESCE(SUM(amount), 0) FROM expenses"
     ).fetchone()[0]
+
+    profit = total_income - total_expense
+
+    daily = conn.execute("""
+        SELECT 
+            d.date,
+            COALESCE(i.total_income, 0) AS income,
+            COALESCE(e.total_expense, 0) AS expense
+        FROM (
+            SELECT date FROM income
+            UNION
+            SELECT date FROM expenses
+        ) d
+        LEFT JOIN (
+            SELECT date, SUM(amount) AS total_income
+            FROM income
+            GROUP BY date
+        ) i ON d.date = i.date
+        LEFT JOIN (
+            SELECT date, SUM(amount) AS total_expense
+            FROM expenses
+            GROUP BY date
+        ) e ON d.date = e.date
+        ORDER BY d.date DESC
+    """).fetchall()
 
     conn.close()
 
@@ -356,8 +389,10 @@ def summary():
         "summary.html",
         total_income=total_income,
         total_expense=total_expense,
-        profit=total_income - total_expense
+        profit=profit,
+        daily=daily
     )
+
 
 
 # ---------------- RUN APP ----------------

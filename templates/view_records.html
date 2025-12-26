@@ -2,8 +2,13 @@
 {% block content %}
 
 <h2>Records</h2>
-<a href="/export/income" class="btn">Export Income Excel</a>
-<a href="/export/expenses" class="btn">Export Expenses Excel</a>
+<a href="{{ url_for('export_income') }}" class="btn">
+    Export Income → Excel
+</a>
+
+<a href="{{ url_for('export_expenses') }}" class="btn">
+    Export Expenses → Excel
+</a>
 
 <form method="get" action="{{ url_for('view_records') }}">
     <label>Type</label>

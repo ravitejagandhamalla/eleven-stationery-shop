@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 
 app = Flask(__name__)
 app.secret_key = "785752cf9871d5a9418651dbfac41b3b"
+
 # ================= DATABASE =================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,11 +26,18 @@ def login_required(fn):
         return fn(*args, **kwargs)
     return wrapper
 
-# ================= AUTH =================
+# ================= HOME / INDEX =================
 
 @app.route("/")
 def home():
     return redirect(url_for("dashboard")) if "user" in session else redirect(url_for("login"))
+
+@app.route("/index")
+@login_required
+def index():
+    return redirect(url_for("dashboard"))
+
+# ================= AUTH =================
 
 @app.route("/login", methods=["GET", "POST"])
 def login():

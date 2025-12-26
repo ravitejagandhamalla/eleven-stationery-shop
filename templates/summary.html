@@ -35,10 +35,13 @@
 
     {% for d in daily %}
     <tr>
-        <td>{{ d.date }}</td>
-        <td>₹{{ "%.2f"|format(d.inc) }}</td>
-        <td>₹{{ "%.2f"|format(d.exp) }}</td>
-        <td>₹{{ "%.2f"|format(d.inc - d.exp) }}</td>
+        <<tr>
+    <td>{{ d["date"] }}</td>
+    <td>₹{{ "%.2f"|format(d["inc"]) }}</td>
+    <td>₹{{ "%.2f"|format(d["exp"]) }}</td>
+    <td>₹{{ "%.2f"|format(d["inc"] - d["exp"]) }}</td>
+</tr>
+
     </tr>
     {% endfor %}
 </table>

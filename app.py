@@ -7,6 +7,12 @@ app.secret_key = "785752cf9871d5a9418651dbfac41b3b"
 
 # ---------------- LOGIN REQUIRED DECORATOR ----------------
 @app.before_request
+def block_unauthorized():
+    allowed = {"login", "forgot_password", "reset_password", "static"}
+    if request.endpoint not in allowed and "user" not in session:
+        return redirect(url_for("login"))
+
+@app.before_request
 def require_login():
     allowed = {"login", "forgot_password", "reset_password", "static"}
     if request.endpoint not in allowed and "user" not in session:
@@ -27,7 +33,7 @@ def login_required(fn):
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    session.clear()  # 🔐 clears old cookies / sessions
+    session.clear()  # 🔐 CRITICAL
 
     if request.method == "POST":
         username = request.form["username"].strip()
@@ -42,12 +48,12 @@ def login():
 
         if user:
             session["user"] = username
-            flash("Login successful!", "success")
             return redirect(url_for("index"))
 
         flash("Invalid username or password", "error")
 
     return render_template("login.html")
+
 
 
 # ---------------- LOGOUT ----------------
@@ -351,35 +357,26 @@ def summary():
     conn = get_db_connection()
 
     total_income = conn.execute(
-        "SELECT COALESCE(SUM(amount), 0) FROM income"
+        "SELECT COALESCE(SUM(amount),0) FROM income"
     ).fetchone()[0]
 
     total_expense = conn.execute(
-        "SELECT COALESCE(SUM(amount), 0) FROM expenses"
+        "SELECT COALESCE(SUM(amount),0) FROM expenses"
     ).fetchone()[0]
-
-    profit = total_income - total_expense
 
     daily = conn.execute("""
         SELECT 
-            d.date,
-            COALESCE(i.total_income, 0) AS income,
-            COALESCE(e.total_expense, 0) AS expense
+            d.date AS date,
+            COALESCE(SUM(i.amount), 0) AS inc,
+            COALESCE(SUM(e.amount), 0) AS exp
         FROM (
             SELECT date FROM income
             UNION
             SELECT date FROM expenses
         ) d
-        LEFT JOIN (
-            SELECT date, SUM(amount) AS total_income
-            FROM income
-            GROUP BY date
-        ) i ON d.date = i.date
-        LEFT JOIN (
-            SELECT date, SUM(amount) AS total_expense
-            FROM expenses
-            GROUP BY date
-        ) e ON d.date = e.date
+        LEFT JOIN income i ON i.date = d.date
+        LEFT JOIN expenses e ON e.date = d.date
+        GROUP BY d.date
         ORDER BY d.date DESC
     """).fetchall()
 
@@ -389,10 +386,9 @@ def summary():
         "summary.html",
         total_income=total_income,
         total_expense=total_expense,
-        profit=profit,
+        profit=total_income - total_expense,
         daily=daily
     )
-
 
 
 # ---------------- RUN APP ----------------

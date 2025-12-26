@@ -290,16 +290,38 @@ def delete_record(typ, id):
 @login_required
 def view_records():
     t = request.args.get("t", "both")
+    start = request.args.get("start")
+    end = request.args.get("end")
 
     conn = get_db_connection()
 
-    incomes = conn.execute(
-        "SELECT * FROM income ORDER BY date DESC"
-    ).fetchall() if t in ("income", "both") else []
+    filter_sql = ""
+    params = []
 
-    expenses = conn.execute(
-        "SELECT * FROM expenses ORDER BY date DESC"
-    ).fetchall() if t in ("expenses", "both") else []
+    if start and end:
+        filter_sql = " WHERE date BETWEEN ? AND ? "
+        params = [start, end]
+    elif start:
+        filter_sql = " WHERE date >= ? "
+        params = [start]
+    elif end:
+        filter_sql = " WHERE date <= ? "
+        params = [end]
+
+    incomes = []
+    expenses = []
+
+    if t in ("income", "both"):
+        incomes = conn.execute(
+            "SELECT * FROM income" + filter_sql + " ORDER BY date DESC",
+            params
+        ).fetchall()
+
+    if t in ("expenses", "both"):
+        expenses = conn.execute(
+            "SELECT * FROM expenses" + filter_sql + " ORDER BY date DESC",
+            params
+        ).fetchall()
 
     conn.close()
 
@@ -307,7 +329,9 @@ def view_records():
         "view_records.html",
         incomes=incomes,
         expenses=expenses,
-        t=t
+        t=t,
+        start=start,
+        end=end
     )
 
 

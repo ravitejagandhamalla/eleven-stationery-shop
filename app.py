@@ -4,7 +4,7 @@ from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 
 app = Flask(__name__)
-app.secret_key = "eleven_stationery_secret"
+app.secret_key = "785752cf9871d5a9418651dbfac41b3b"
 
 # ================= DATABASE =================
 

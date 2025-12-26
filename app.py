@@ -5,7 +5,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 
 app = Flask(__name__)
 app.secret_key = "785752cf9871d5a9418651dbfac41b3b"
-
 # ================= DATABASE =================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

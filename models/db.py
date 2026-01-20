@@ -2,15 +2,11 @@ import os
 import psycopg2
 import psycopg2.extras
 
+DATABASE_URL = os.environ.get("postgresql://postgres.vjmksejmnxgowpnwgaxv:Ravi141645$@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")
+
 def get_db_connection():
-    DATABASE_URL = os.getenv("DATABASE_URL")
-
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL is not set")
-
-    conn = psycopg2.connect(
+    return psycopg2.connect(
         DATABASE_URL,
         cursor_factory=psycopg2.extras.RealDictCursor,
         sslmode="require"
     )
-    return conn

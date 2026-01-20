@@ -1,44 +1,39 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
-from functools import wraps
 from models.db import get_db_connection
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = "785752cf9871d5a9418651dbfac41b3b"
 
 
-# ================= LOGIN REQUIRED =================
+# ---------------- LOGIN REQUIRED ----------------
+
 def login_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if "user" not in session:
-            session.clear()
             return redirect(url_for("login"))
         return fn(*args, **kwargs)
     return wrapper
 
 
-# ================= LOGIN (ONLY ONE) =================
+# ---------------- LOGIN ----------------
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if "user" in session:
-        return redirect(url_for("index"))
-
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form["username"].strip()
+        password = request.form["password"].strip()
 
         conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM users WHERE username=%s AND password=%s",
+        user = conn.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
             (username, password)
-        )
-        user = cur.fetchone()
+        ).fetchone()
         conn.close()
 
         if user:
             session["user"] = username
-            flash("Login successful", "success")
             return redirect(url_for("index"))
 
         flash("Invalid username or password", "error")
@@ -46,98 +41,119 @@ def login():
     return render_template("login.html")
 
 
-# ================= LOGOUT =================
+# ---------------- LOGOUT ----------------
+
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("Logged out successfully", "success")
     return redirect(url_for("login"))
 
 
-# ================= HOME =================
+# ---------------- CHANGE PASSWORD ----------------
+# 🔴 THIS ROUTE WAS MISSING – NOW FIXED
+
+@app.route("/change-password", methods=["GET", "POST"])
+def change_password():
+    if request.method == "POST":
+        username = request.form["username"]
+        old = request.form["old_password"]
+        new = request.form["new_password"]
+
+        conn = get_db_connection()
+        user = conn.execute(
+            "SELECT * FROM users WHERE username=? AND password=?",
+            (username, old)
+        ).fetchone()
+
+        if not user:
+            conn.close()
+            flash("Wrong credentials", "error")
+            return redirect(url_for("change_password"))
+
+        conn.execute(
+            "UPDATE users SET password=? WHERE username=?",
+            (new, username)
+        )
+        conn.commit()
+        conn.close()
+
+        flash("Password updated", "success")
+        return redirect(url_for("login"))
+
+    return render_template("change_password.html")
+
+
+# ---------------- HOME / DASHBOARD ----------------
+
 @app.route("/")
 @login_required
 def index():
     return render_template("index.html")
 
 
-# ================= INCOME =================
+# ---------------- ADD INCOME ----------------
+
 @app.route("/income", methods=["GET", "POST"])
 @login_required
 def income():
     if request.method == "POST":
         conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO income (date, amount, description) VALUES (%s,%s,%s)",
+        conn.execute(
+            "INSERT INTO income (date, amount, description) VALUES (?, ?, ?)",
             (request.form["date"], request.form["amount"], request.form["description"])
         )
         conn.commit()
         conn.close()
-        return redirect(url_for("records", t="income"))
+        return redirect(url_for("records"))
 
-    return render_template("income.html", edit=False)
+    return render_template("income.html")
 
 
-# ================= EXPENSE =================
+# ---------------- ADD EXPENSE ----------------
+
 @app.route("/expense", methods=["GET", "POST"])
 @login_required
 def expense():
     if request.method == "POST":
         conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO expenses (date, amount, purpose) VALUES (%s,%s,%s)",
+        conn.execute(
+            "INSERT INTO expenses (date, amount, purpose) VALUES (?, ?, ?)",
             (request.form["date"], request.form["amount"], request.form["purpose"])
         )
         conn.commit()
         conn.close()
-        return redirect(url_for("records", t="expenses"))
+        return redirect(url_for("records"))
 
-    return render_template("expense.html", edit=False)
+    return render_template("expense.html")
 
 
-# ================= RECORDS =================
+# ---------------- VIEW RECORDS ----------------
+# 🔴 FUNCTION NAME IS `records` (NOT view_records)
+
 @app.route("/records")
 @login_required
 def records():
-    t = request.args.get("t", "both")
-
     conn = get_db_connection()
-    cur = conn.cursor()
-
-    incomes = []
-    expenses = []
-
-    if t in ("income", "both"):
-        cur.execute("SELECT * FROM income ORDER BY date DESC")
-        incomes = cur.fetchall()
-
-    if t in ("expenses", "both"):
-        cur.execute("SELECT * FROM expenses ORDER BY date DESC")
-        expenses = cur.fetchall()
-
+    incomes = conn.execute("SELECT * FROM income ORDER BY date DESC").fetchall()
+    expenses = conn.execute("SELECT * FROM expenses ORDER BY date DESC").fetchall()
     conn.close()
+
     return render_template(
         "view_records.html",
         incomes=incomes,
-        expenses=expenses,
-        t=t
+        expenses=expenses
     )
 
 
-# ================= SUMMARY =================
+# ---------------- SUMMARY ----------------
+
 @app.route("/summary")
 @login_required
 def summary():
     conn = get_db_connection()
-    cur = conn.cursor()
 
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM income")
-    total_income = cur.fetchone()[0]
-
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses")
-    total_expense = cur.fetchone()[0]
+    total_income = conn.execute("SELECT COALESCE(SUM(amount),0) FROM income").fetchone()[0]
+    total_expense = conn.execute("SELECT COALESCE(SUM(amount),0) FROM expenses").fetchone()[0]
 
     conn.close()
 
@@ -147,8 +163,3 @@ def summary():
         total_expense=total_expense,
         profit=total_income - total_expense
     )
-
-
-# ================= RUN =================
-if __name__ == "__main__":
-    app.run(debug=True)

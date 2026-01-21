@@ -49,22 +49,22 @@ def login():
         password = request.form.get("password")
 
         conn = get_db_connection()
-        cur = conn.cursor()
+        if conn is None:
+            flash("Database not connected. Check DATABASE_URL in Render.", "danger")
+            return redirect(url_for("login"))
 
-        cur.execute(
-            "SELECT * FROM users WHERE email = %s AND password = %s",
-            (email, password)
-        )
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cur.fetchone()
 
         cur.close()
         conn.close()
 
-        if user:
-            session["user_email"] = email
-            return redirect(url_for("index"))
-
-        flash("Invalid email or password", "error")
+        if user and check_password_hash(user["password"], password):
+            session["user_id"] = user["id"]
+            return redirect(url_for("dashboard"))
+        else:
+            flash("Invalid email or password", "danger")
 
     return render_template("login.html")
 

@@ -6,16 +6,13 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 
 # -------------------------------------------------
-# ENV SETUP
+# ENV
 # -------------------------------------------------
 load_dotenv()
 
 DATABASE_URL = os.getenv("postgresql://postgres.vjmksejmnxgowpnwgaxv:dlmHeBHcR0IWx8Jm@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")
 SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-123")
 
-# -------------------------------------------------
-# APP INIT
-# -------------------------------------------------
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
@@ -32,7 +29,7 @@ def get_db_connection():
 
 
 # -------------------------------------------------
-# LOGIN REQUIRED DECORATOR
+# LOGIN REQUIRED
 # -------------------------------------------------
 def login_required(fn):
     @wraps(fn)
@@ -49,13 +46,13 @@ def login_required(fn):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"].strip()
-        password = request.form["password"].strip()
+        email = request.form["email"]
+        password = request.form["password"]
 
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, email FROM users WHERE email=%s AND password=%s",
+            "SELECT id FROM users WHERE email=%s AND password=%s",
             (email, password)
         )
         user = cur.fetchone()
@@ -63,7 +60,7 @@ def login():
         conn.close()
 
         if user:
-            session["user_email"] = user["email"]
+            session["user_email"] = email
             return redirect(url_for("index"))
 
         flash("Invalid email or password", "error")
@@ -81,16 +78,74 @@ def logout():
 
 
 # -------------------------------------------------
+# FORGOT PASSWORD
+# -------------------------------------------------
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form["email"]
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not user:
+            flash("Email not found", "error")
+            return redirect(url_for("forgot_password"))
+
+        session["reset_email"] = email
+        return redirect(url_for("reset_password"))
+
+    return render_template("forgot_password.html")
+
+
+# -------------------------------------------------
+# RESET PASSWORD
+# -------------------------------------------------
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    if "reset_email" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        new = request.form["new_password"]
+        confirm = request.form["confirm_password"]
+
+        if new != confirm:
+            flash("Passwords do not match", "error")
+            return redirect(url_for("reset_password"))
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE users SET password=%s WHERE email=%s",
+            (new, session["reset_email"])
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        session.pop("reset_email")
+        flash("Password reset successful")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html")
+
+
+# -------------------------------------------------
 # CHANGE PASSWORD
 # -------------------------------------------------
 @app.route("/change-password", methods=["GET", "POST"])
 @login_required
 def change_password():
     if request.method == "POST":
-        email = session["user_email"]
         old = request.form["old_password"]
         new = request.form["new_password"]
         confirm = request.form["confirm_password"]
+        email = session["user_email"]
 
         if new != confirm:
             flash("Passwords do not match", "error")
@@ -98,7 +153,6 @@ def change_password():
 
         conn = get_db_connection()
         cur = conn.cursor()
-
         cur.execute(
             "SELECT id FROM users WHERE email=%s AND password=%s",
             (email, old)
@@ -106,9 +160,9 @@ def change_password():
         user = cur.fetchone()
 
         if not user:
+            flash("Old password incorrect", "error")
             cur.close()
             conn.close()
-            flash("Old password incorrect", "error")
             return redirect(url_for("change_password"))
 
         cur.execute(
@@ -135,135 +189,7 @@ def index():
 
 
 # -------------------------------------------------
-# ADD INCOME
-# -------------------------------------------------
-@app.route("/income", methods=["GET", "POST"])
-@login_required
-def income():
-    if request.method == "POST":
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO income (date, amount, description) VALUES (%s, %s, %s)",
-            (
-                request.form["date"],
-                request.form["amount"],
-                request.form["description"]
-            )
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-        return redirect(url_for("view_records", t="income"))
-
-    return render_template("income.html", edit=False)
-
-
-# -------------------------------------------------
-# ADD EXPENSE
-# -------------------------------------------------
-@app.route("/expense", methods=["GET", "POST"])
-@login_required
-def expense():
-    if request.method == "POST":
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO expenses (date, amount, purpose) VALUES (%s, %s, %s)",
-            (
-                request.form["date"],
-                request.form["amount"],
-                request.form["purpose"]
-            )
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-        return redirect(url_for("view_records", t="expenses"))
-
-    return render_template("expense.html", edit=False)
-
-
-# -------------------------------------------------
-# VIEW RECORDS
-# -------------------------------------------------
-@app.route("/records")
-@login_required
-def view_records():
-    t = request.args.get("t", "both")
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    incomes = []
-    expenses = []
-
-    if t in ("income", "both"):
-        cur.execute("SELECT * FROM income ORDER BY date DESC")
-        incomes = cur.fetchall()
-
-    if t in ("expenses", "both"):
-        cur.execute("SELECT * FROM expenses ORDER BY date DESC")
-        expenses = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return render_template(
-        "view_records.html",
-        incomes=incomes,
-        expenses=expenses,
-        t=t
-    )
-
-
-# -------------------------------------------------
-# DELETE RECORD
-# -------------------------------------------------
-@app.route("/delete/<string:typ>/<int:id>", methods=["POST"])
-@login_required
-def delete_record(typ, id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    if typ == "income":
-        cur.execute("DELETE FROM income WHERE id=%s", (id,))
-    else:
-        cur.execute("DELETE FROM expenses WHERE id=%s", (id,))
-
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect(url_for("view_records", t=typ))
-
-
-# -------------------------------------------------
-# SUMMARY
-# -------------------------------------------------
-@app.route("/summary")
-@login_required
-def summary():
-    conn = get_db_connection()
-    cur = conn.cursor()
-
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM income")
-    total_income = cur.fetchone()["coalesce"]
-
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses")
-    total_expense = cur.fetchone()["coalesce"]
-
-    cur.close()
-    conn.close()
-
-    return render_template(
-        "summary.html",
-        total_income=total_income,
-        total_expense=total_expense,
-        profit=total_income - total_expense
-    )
-
-
-# -------------------------------------------------
-# RUN LOCAL
+# RUN
 # -------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True)

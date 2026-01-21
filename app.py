@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from models.db import get_db_connection
 
 app = Flask(__name__)
-app.secret_key = "785752cf9871d5a9418651dbfac41b3b"
+app.secret_key = "Ravi"
 
 
 # ---------------- LOGIN REQUIRED DECORATOR ----------------

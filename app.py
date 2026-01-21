@@ -1,42 +1,41 @@
 import os
 import psycopg2
 import psycopg2.extras
-from functools import wraps
-from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 
 # -------------------------------------------------
-# ENV
+# APP CONFIG
 # -------------------------------------------------
-load_dotenv()
-
-DATABASE_URL = os.getenv("postgresql://postgres.vjmksejmnxgowpnwgaxv:dlmHeBHcR0IWx8Jm@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")
-SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-123")
-
 app = Flask(__name__)
-app.secret_key = SECRET_KEY
+
+app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key-123")
+
+DATABASE_URL = os.environ.get("postgresql://postgres.vjmksejmnxgowpnwgaxv:dlmHeBHcR0IWx8Jm@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")
 
 
 # -------------------------------------------------
 # DB CONNECTION
 # -------------------------------------------------
 def get_db_connection():
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL not set")
+
     return psycopg2.connect(
-        DATABASE_URL,
-        cursor_factory=psycopg2.extras.RealDictCursor,
-        sslmode="require"
+        dsn=DATABASE_URL,
+        sslmode="require",
+        cursor_factory=psycopg2.extras.RealDictCursor
     )
 
 
 # -------------------------------------------------
-# LOGIN REQUIRED
+# LOGIN REQUIRED DECORATOR
 # -------------------------------------------------
 def login_required(fn):
-    @wraps(fn)
     def wrapper(*args, **kwargs):
         if "user_email" not in session:
             return redirect(url_for("login"))
         return fn(*args, **kwargs)
+    wrapper.__name__ = fn.__name__
     return wrapper
 
 
@@ -46,16 +45,18 @@ def login_required(fn):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+        email = request.form.get("email")
+        password = request.form.get("password")
 
         conn = get_db_connection()
         cur = conn.cursor()
+
         cur.execute(
-            "SELECT id FROM users WHERE email=%s AND password=%s",
+            "SELECT * FROM users WHERE email = %s AND password = %s",
             (email, password)
         )
         user = cur.fetchone()
+
         cur.close()
         conn.close()
 
@@ -83,12 +84,14 @@ def logout():
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        email = request.form["email"]
+        email = request.form.get("email")
 
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id FROM users WHERE email=%s", (email,))
+
+        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cur.fetchone()
+
         cur.close()
         conn.close()
 
@@ -111,19 +114,21 @@ def reset_password():
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        new = request.form["new_password"]
-        confirm = request.form["confirm_password"]
+        new_password = request.form.get("new_password")
+        confirm = request.form.get("confirm_password")
 
-        if new != confirm:
+        if new_password != confirm:
             flash("Passwords do not match", "error")
             return redirect(url_for("reset_password"))
 
         conn = get_db_connection()
         cur = conn.cursor()
+
         cur.execute(
-            "UPDATE users SET password=%s WHERE email=%s",
-            (new, session["reset_email"])
+            "UPDATE users SET password = %s WHERE email = %s",
+            (new_password, session["reset_email"])
         )
+
         conn.commit()
         cur.close()
         conn.close()
@@ -136,16 +141,15 @@ def reset_password():
 
 
 # -------------------------------------------------
-# CHANGE PASSWORD
+# CHANGE PASSWORD (LOGGED IN)
 # -------------------------------------------------
 @app.route("/change-password", methods=["GET", "POST"])
 @login_required
 def change_password():
     if request.method == "POST":
-        old = request.form["old_password"]
-        new = request.form["new_password"]
-        confirm = request.form["confirm_password"]
-        email = session["user_email"]
+        old = request.form.get("old_password")
+        new = request.form.get("new_password")
+        confirm = request.form.get("confirm_password")
 
         if new != confirm:
             flash("Passwords do not match", "error")
@@ -153,22 +157,24 @@ def change_password():
 
         conn = get_db_connection()
         cur = conn.cursor()
+
         cur.execute(
-            "SELECT id FROM users WHERE email=%s AND password=%s",
-            (email, old)
+            "SELECT * FROM users WHERE email = %s AND password = %s",
+            (session["user_email"], old)
         )
         user = cur.fetchone()
 
         if not user:
-            flash("Old password incorrect", "error")
             cur.close()
             conn.close()
+            flash("Old password incorrect", "error")
             return redirect(url_for("change_password"))
 
         cur.execute(
-            "UPDATE users SET password=%s WHERE email=%s",
-            (new, email)
+            "UPDATE users SET password = %s WHERE email = %s",
+            (new, session["user_email"])
         )
+
         conn.commit()
         cur.close()
         conn.close()
@@ -189,7 +195,7 @@ def index():
 
 
 # -------------------------------------------------
-# RUN
+# RUN LOCAL ONLY
 # -------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True)

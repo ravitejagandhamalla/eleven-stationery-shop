@@ -1,55 +1,104 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, session
-from models.db import get_db_connection
+import psycopg2
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
+
+# ========================
+# CONFIG
+# ========================
 app.secret_key = os.getenv("SECRET_KEY", "super-secret-key-123")
 
+DATABASE_URL = os.getenv("postgresql://postgres.vjmksejmnxgowpnwgaxv:dlmHeBHcR0IWx8Jm@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
 
-def login_required(fn):
-    def wrapper(*args, **kwargs):
-        if "user" not in session:
-            return redirect(url_for("login"))
-        return fn(*args, **kwargs)
-    wrapper.__name__ = fn.__name__
-    return wrapper
+# ========================
+# DATABASE CONNECTION
+# ========================
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
 
+# ========================
+# ROUTES
+# ========================
 
+@app.route("/")
+def index():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    return render_template("index.html")
+
+# ------------------------
+# LOGIN
+# ------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
+        email = request.form["email"]
         password = request.form["password"]
 
         conn = get_db_connection()
         cur = conn.cursor()
+
         cur.execute(
-            "SELECT * FROM users WHERE username=%s AND password=%s",
-            (username, password)
+            "SELECT id FROM users WHERE email=%s AND password=%s",
+            (email, password)
         )
         user = cur.fetchone()
+
+        cur.close()
         conn.close()
 
         if user:
-            session["user"] = username
+            session["user_id"] = user[0]
             return redirect(url_for("index"))
-
-        flash("Invalid credentials")
+        else:
+            flash("Invalid email or password", "danger")
 
     return render_template("login.html")
 
-
-@app.route("/")
-@login_required
-def index():
-    return render_template("index.html")
-
-
+# ------------------------
+# LOGOUT
+# ------------------------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
+# ------------------------
+# CHANGE PASSWORD (FIXED)
+# ------------------------
+@app.route("/change-password", methods=["GET", "POST"])
+def change_password():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
+    if request.method == "POST":
+        new_password = request.form["new_password"]
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "UPDATE users SET password=%s WHERE id=%s",
+            (new_password, session["user_id"])
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Password updated successfully", "success")
+        return redirect(url_for("index"))
+
+    return render_template("change_password.html")
+
+# ========================
+# RUN
+# ========================
 if __name__ == "__main__":
     app.run(debug=True)

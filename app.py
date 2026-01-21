@@ -1,17 +1,21 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from functools import wraps
 from models.db import get_db_connection
 
 app = Flask(__name__)
-app.secret_key = "ravi-eleven-stationery-2026!@"
+app.secret_key = os.getenv("SECRET_KEY", "super-secret-key-123
+")
 
 
-# ---------------- LOGIN REQUIRED DECORATOR ----------------
+# ---------------- LOGIN REQUIRED ----------------
 def login_required(fn):
+    @wraps(fn)
     def wrapper(*args, **kwargs):
         if "user" not in session:
+            flash("Please login first", "error")
             return redirect(url_for("login"))
         return fn(*args, **kwargs)
-    wrapper.__name__ = fn.__name__
     return wrapper
 
 
@@ -23,10 +27,15 @@ def login():
         password = request.form["password"].strip()
 
         conn = get_db_connection()
-        user = conn.execute(
-            "SELECT * FROM users WHERE username=? AND password=?",
+        cur = conn.cursor()
+
+        cur.execute(
+            "SELECT * FROM users WHERE username=%s AND password=%s",
             (username, password)
-        ).fetchone()
+        )
+        user = cur.fetchone()
+
+        cur.close()
         conn.close()
 
         if user:
@@ -40,98 +49,10 @@ def login():
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
+@login_required
 def logout():
     session.clear()
     return redirect(url_for("login"))
-
-
-# ---------------- CHANGE PASSWORD ----------------
-@app.route("/change-password", methods=["GET", "POST"])
-def change_password():
-    if request.method == "POST":
-        username = request.form["username"]
-        old = request.form["old_password"]
-        new = request.form["new_password"]
-        confirm = request.form["confirm_password"]
-
-        if new != confirm:
-            flash("Passwords do not match", "error")
-            return redirect(url_for("change_password"))
-
-        conn = get_db_connection()
-        user = conn.execute(
-            "SELECT * FROM users WHERE username=? AND password=?",
-            (username, old)
-        ).fetchone()
-
-        if not user:
-            conn.close()
-            flash("Invalid username or password", "error")
-            return redirect(url_for("change_password"))
-
-        conn.execute(
-            "UPDATE users SET password=? WHERE username=?",
-            (new, username)
-        )
-        conn.commit()
-        conn.close()
-
-        flash("Password changed successfully")
-        return redirect(url_for("login"))
-
-    return render_template("change_password.html")
-
-
-# ---------------- FORGOT PASSWORD ----------------
-@app.route("/forgot-password", methods=["GET", "POST"])
-def forgot_password():
-    if request.method == "POST":
-        username = request.form["username"]
-
-        conn = get_db_connection()
-        user = conn.execute(
-            "SELECT * FROM users WHERE username=?",
-            (username,)
-        ).fetchone()
-        conn.close()
-
-        if not user:
-            flash("Username not found", "error")
-            return redirect(url_for("forgot_password"))
-
-        session["reset_user"] = username
-        return redirect(url_for("reset_password"))
-
-    return render_template("forgot_password.html")
-
-
-# ---------------- RESET PASSWORD ----------------
-@app.route("/reset-password", methods=["GET", "POST"])
-def reset_password():
-    if "reset_user" not in session:
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        new = request.form["new_password"]
-        confirm = request.form["confirm_password"]
-
-        if new != confirm:
-            flash("Passwords do not match", "error")
-            return redirect(url_for("reset_password"))
-
-        conn = get_db_connection()
-        conn.execute(
-            "UPDATE users SET password=? WHERE username=?",
-            (new, session["reset_user"])
-        )
-        conn.commit()
-        conn.close()
-
-        session.pop("reset_user")
-        flash("Password reset successful")
-        return redirect(url_for("login"))
-
-    return render_template("reset_password.html")
 
 
 # ---------------- HOME ----------------
@@ -147,12 +68,17 @@ def index():
 def income():
     if request.method == "POST":
         conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO income (date, amount, description) VALUES (?, ?, ?)",
+        cur = conn.cursor()
+
+        cur.execute(
+            "INSERT INTO income (date, amount, description) VALUES (%s, %s, %s)",
             (request.form["date"], request.form["amount"], request.form["description"])
         )
+
         conn.commit()
+        cur.close()
         conn.close()
+
         return redirect(url_for("view_records", t="income"))
 
     return render_template("income.html", edit=False)
@@ -164,12 +90,17 @@ def income():
 def expense():
     if request.method == "POST":
         conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO expenses (date, amount, purpose) VALUES (?, ?, ?)",
+        cur = conn.cursor()
+
+        cur.execute(
+            "INSERT INTO expenses (date, amount, purpose) VALUES (%s, %s, %s)",
             (request.form["date"], request.form["amount"], request.form["purpose"])
         )
+
         conn.commit()
+        cur.close()
         conn.close()
+
         return redirect(url_for("view_records", t="expenses"))
 
     return render_template("expense.html", edit=False)
@@ -182,13 +113,20 @@ def view_records():
     t = request.args.get("t", "both")
 
     conn = get_db_connection()
-    incomes = conn.execute(
-        "SELECT * FROM income ORDER BY date DESC"
-    ).fetchall() if t in ("income", "both") else []
+    cur = conn.cursor()
 
-    expenses = conn.execute(
-        "SELECT * FROM expenses ORDER BY date DESC"
-    ).fetchall() if t in ("expenses", "both") else []
+    incomes = []
+    expenses = []
+
+    if t in ("income", "both"):
+        cur.execute("SELECT * FROM income ORDER BY date DESC")
+        incomes = cur.fetchall()
+
+    if t in ("expenses", "both"):
+        cur.execute("SELECT * FROM expenses ORDER BY date DESC")
+        expenses = cur.fetchall()
+
+    cur.close()
     conn.close()
 
     return render_template(
@@ -204,18 +142,24 @@ def view_records():
 @login_required
 def edit_income(id):
     conn = get_db_connection()
-    record = conn.execute("SELECT * FROM income WHERE id=?", (id,)).fetchone()
+    cur = conn.cursor()
 
     if request.method == "POST":
-        conn.execute(
-            "UPDATE income SET date=?, amount=?, description=? WHERE id=?",
+        cur.execute(
+            "UPDATE income SET date=%s, amount=%s, description=%s WHERE id=%s",
             (request.form["date"], request.form["amount"], request.form["description"], id)
         )
         conn.commit()
+        cur.close()
         conn.close()
         return redirect(url_for("view_records", t="income"))
 
+    cur.execute("SELECT * FROM income WHERE id=%s", (id,))
+    record = cur.fetchone()
+
+    cur.close()
     conn.close()
+
     return render_template("income.html", record=record, edit=True)
 
 
@@ -224,18 +168,24 @@ def edit_income(id):
 @login_required
 def edit_expense(id):
     conn = get_db_connection()
-    record = conn.execute("SELECT * FROM expenses WHERE id=?", (id,)).fetchone()
+    cur = conn.cursor()
 
     if request.method == "POST":
-        conn.execute(
-            "UPDATE expenses SET date=?, amount=?, purpose=? WHERE id=?",
+        cur.execute(
+            "UPDATE expenses SET date=%s, amount=%s, purpose=%s WHERE id=%s",
             (request.form["date"], request.form["amount"], request.form["purpose"], id)
         )
         conn.commit()
+        cur.close()
         conn.close()
         return redirect(url_for("view_records", t="expenses"))
 
+    cur.execute("SELECT * FROM expenses WHERE id=%s", (id,))
+    record = cur.fetchone()
+
+    cur.close()
     conn.close()
+
     return render_template("expense.html", record=record, edit=True)
 
 
@@ -244,12 +194,17 @@ def edit_expense(id):
 @login_required
 def delete_record(typ, id):
     conn = get_db_connection()
+    cur = conn.cursor()
+
     if typ == "income":
-        conn.execute("DELETE FROM income WHERE id=?", (id,))
+        cur.execute("DELETE FROM income WHERE id=%s", (id,))
     else:
-        conn.execute("DELETE FROM expenses WHERE id=?", (id,))
+        cur.execute("DELETE FROM expenses WHERE id=%s", (id,))
+
     conn.commit()
+    cur.close()
     conn.close()
+
     return redirect(url_for("view_records", t=typ))
 
 
@@ -258,8 +213,15 @@ def delete_record(typ, id):
 @login_required
 def summary():
     conn = get_db_connection()
-    total_income = conn.execute("SELECT COALESCE(SUM(amount),0) FROM income").fetchone()[0]
-    total_expense = conn.execute("SELECT COALESCE(SUM(amount),0) FROM expenses").fetchone()[0]
+    cur = conn.cursor()
+
+    cur.execute("SELECT COALESCE(SUM(amount), 0) AS total FROM income")
+    total_income = cur.fetchone()["total"]
+
+    cur.execute("SELECT COALESCE(SUM(amount), 0) AS total FROM expenses")
+    total_expense = cur.fetchone()["total"]
+
+    cur.close()
     conn.close()
 
     return render_template(

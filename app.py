@@ -4,8 +4,7 @@ from functools import wraps
 from models.db import get_db_connection
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "super-secret-key-123
-")
+app.secret_key = os.getenv("SECRET_KEY", "super-secret-key-123")
 
 
 # ---------------- LOGIN REQUIRED ----------------

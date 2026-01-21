@@ -17,13 +17,18 @@ DATABASE_URL = os.environ.get("postgresql://postgres.vjmksejmnxgowpnwgaxv:dlmHeB
 # DB CONNECTION
 # -------------------------------------------------
 def get_db_connection():
-    if not DATABASE_URL:
-        raise RuntimeError("DATABASE_URL not set")
+    db_url = os.environ.get("DATABASE_URL")
+
+    if not db_url:
+        print("WARNING: DATABASE_URL not found, skipping DB connection")
+        return None
 
     return psycopg2.connect(
-        dsn=DATABASE_URL,
+        db_url,
         sslmode="require",
         cursor_factory=psycopg2.extras.RealDictCursor
+    )
+
     )
 
 
@@ -55,7 +60,7 @@ def login():
 
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM users WHERE email=%s AND password=%s",
+            "SELECT * FROM users WHERE email = %s AND password = %s",
             (email, password)
         )
         user = cur.fetchone()
@@ -65,11 +70,13 @@ def login():
 
         if user:
             session["user_id"] = user["id"]
-            return redirect(url_for("index"))
+            return redirect(url_for("dashboard"))
         else:
             flash("Invalid email or password", "danger")
+            return redirect(url_for("login"))
 
     return render_template("login.html")
+
 
 
 # -------------------------------------------------

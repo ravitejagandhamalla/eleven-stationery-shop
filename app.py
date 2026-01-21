@@ -50,19 +50,22 @@ def login():
 
         conn = get_db_connection()
         if conn is None:
-            flash("Database not connected. Check DATABASE_URL in Render.", "danger")
+            flash("Database connection error", "danger")
             return redirect(url_for("login"))
 
         cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+        cur.execute(
+            "SELECT * FROM users WHERE email=%s AND password=%s",
+            (email, password)
+        )
         user = cur.fetchone()
 
         cur.close()
         conn.close()
 
-        if user and check_password_hash(user["password"], password):
+        if user:
             session["user_id"] = user["id"]
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("index"))
         else:
             flash("Invalid email or password", "danger")
 

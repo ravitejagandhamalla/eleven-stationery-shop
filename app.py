@@ -155,7 +155,7 @@ def expenses():
 
     cur.close()
     conn.close()
-    return render_template("expense.html")
+    return render_template("expenses.html")
 
 
 # ==============================
@@ -241,8 +241,8 @@ def delete_income(id):
 # ==============================
 # EDIT EXPENSE
 # ==============================
-@app.route("/edit_expense/<int:id>", methods=["POST"])
-def edit_expense(id):
+@app.route("/edit_expenses/<int:id>", methods=["POST"])
+def edit_expenses(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
 
@@ -307,9 +307,9 @@ def summary():
 
     cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
                 (session["user_id"],))
-    total_expense = cur.fetchone()[0]
+    total_expenses = cur.fetchone()[0]
 
-    profit = total_income - total_expense
+    profit = total_income - total_expenses
 
     cur.close()
     conn.close()
@@ -317,7 +317,7 @@ def summary():
     return render_template(
         "summary.html",
         total_income=total_income,
-        total_expense=total_expense,
+        total_expenses=total_expenses,
         profit=profit
     )
 

@@ -199,26 +199,55 @@ def view_records():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    record_type = request.args.get("type", "both")
+    start_date = request.args.get("start")
+    end_date = request.args.get("end")
+
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Fetch Income with date
-    cur.execute("""
-        SELECT id, date, amount, description
-        FROM income
-        WHERE user_id=%s
-        ORDER BY date DESC
-    """, (session["user_id"],))
-    incomes = cur.fetchall()
+    incomes = []
+    expenses = []
 
-    # Fetch Expenses with date
-    cur.execute("""
-        SELECT id, date, amount, purpose
-        FROM expenses
-        WHERE user_id=%s
-        ORDER BY date DESC
-    """, (session["user_id"],))
-    expenses = cur.fetchall()
+    # =========================
+    # INCOME FILTER
+    # =========================
+    if record_type in ["income", "both"]:
+        query = """
+            SELECT id, date, amount, description
+            FROM income
+            WHERE user_id=%s
+        """
+        params = [session["user_id"]]
+
+        if start_date and end_date:
+            query += " AND date BETWEEN %s AND %s"
+            params.extend([start_date, end_date])
+
+        query += " ORDER BY date DESC"
+
+        cur.execute(query, tuple(params))
+        incomes = cur.fetchall()
+
+    # =========================
+    # EXPENSE FILTER
+    # =========================
+    if record_type in ["expenses", "both"]:
+        query = """
+            SELECT id, date, amount, purpose
+            FROM expenses
+            WHERE user_id=%s
+        """
+        params = [session["user_id"]]
+
+        if start_date and end_date:
+            query += " AND date BETWEEN %s AND %s"
+            params.extend([start_date, end_date])
+
+        query += " ORDER BY date DESC"
+
+        cur.execute(query, tuple(params))
+        expenses = cur.fetchall()
 
     cur.close()
     conn.close()
@@ -226,8 +255,12 @@ def view_records():
     return render_template(
         "view_records.html",
         incomes=incomes,
-        expenses=expenses
+        expenses=expenses,
+        record_type=record_type,
+        start=start_date,
+        end=end_date
     )
+
 
 # ==============================
 # EDIT INCOME

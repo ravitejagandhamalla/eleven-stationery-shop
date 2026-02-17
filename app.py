@@ -1,59 +1,91 @@
 import os
-import psycopg2
 from flask import Flask, render_template, request, redirect, url_for, session
+import psycopg2
+import psycopg2.extras
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key-123")
+app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key")
 
 
 # ==============================
 # DATABASE CONNECTION
 # ==============================
-import os
-import psycopg2
 
 def get_db_connection():
-    database_url = os.environ.get("DATABASE_URL")
+    database_url = os.environ.get("postgresql://ravi_teja_user:8OVmBnpToXXuq3qAiL9SmMof3AYD8NvO@dpg-d69va7vpm1nc739obqa0-a.virginia-postgres.render.com/ravi_teja")
 
     if not database_url:
-        print("ERROR: DATABASE_URL not found in environment")
+        print("ERROR: DATABASE_URL not set")
         return None
 
-    try:
-        conn = psycopg2.connect(database_url, sslmode="require")
-        return conn
-    except Exception as e:
-        print("Database connection failed:", e)
-        return None
+    return psycopg2.connect(
+        database_url,
+        sslmode="require",
+        cursor_factory=psycopg2.extras.RealDictCursor
+    )
+
 
 # ==============================
 # HOME
 # ==============================
+
 @app.route("/")
 def index():
-    if "user" not in session:
+    if "user_id" in session:
+        return redirect(url_for("dashboard"))
+    return redirect(url_for("login"))
+
+
+# ==============================
+# REGISTER
+# ==============================
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+
+        conn = get_db_connection()
+        if not conn:
+            return "Database connection error"
+
+        cur = conn.cursor()
+
+        cur.execute(
+            "INSERT INTO users (email, password) VALUES (%s, %s)",
+            (email, password)
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
         return redirect(url_for("login"))
-    return render_template("index.html")
+
+    return render_template("register.html")
 
 
 # ==============================
 # LOGIN
 # ==============================
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        conn = get_db_connection()
+        email = request.form["email"]
+        password = request.form["password"]
 
-        if conn is None:
+        conn = get_db_connection()
+        if not conn:
             return "Database connection error"
 
         cur = conn.cursor()
 
-        email = request.form["email"]
-        password = request.form["password"]
-
-        cur.execute("SELECT * FROM users WHERE email=%s AND password=%s",
-                    (email, password))
+        cur.execute(
+            "SELECT * FROM users WHERE email=%s AND password=%s",
+            (email, password)
+        )
 
         user = cur.fetchone()
 
@@ -61,18 +93,30 @@ def login():
         conn.close()
 
         if user:
-            session["user"] = user[1]
-            return redirect(url_for("index"))
+            session["user_id"] = user["id"]
+            return redirect(url_for("dashboard"))
         else:
-            return "Invalid credentials"
+            return "Invalid email or password"
 
     return render_template("login.html")
 
+
+# ==============================
+# DASHBOARD
+# ==============================
+
+@app.route("/dashboard")
+def dashboard():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    return render_template("dashboard.html")
 
 
 # ==============================
 # LOGOUT
 # ==============================
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -80,73 +124,8 @@ def logout():
 
 
 # ==============================
-# FORGOT PASSWORD
+# REMOVE THIS FOR RENDER
 # ==============================
-@app.route("/forgot_password", methods=["GET", "POST"])
-def forgot_password():
-    if request.method == "POST":
-        email = request.form["email"]
-        new_password = request.form["new_password"]
 
-        conn = get_db_connection()
-        if conn is None:
-            return "Database connection error"
-
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE users SET password=%s WHERE email=%s",
-            (new_password, email),
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return redirect(url_for("login"))
-
-    return render_template("forgot_password.html")
-
-
-# ==============================
-# CHANGE PASSWORD
-# ==============================
-@app.route("/change_password", methods=["GET", "POST"])
-def change_password():
-    if "user" not in session:
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        new_password = request.form["new_password"]
-
-        conn = get_db_connection()
-        if conn is None:
-            return "Database connection error"
-
-        cur = conn.cursor()
-        cur.execute(
-            "UPDATE users SET password=%s WHERE email=%s",
-            (new_password, session["user"]),
-        )
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        return redirect(url_for("index"))
-
-    return render_template("change_password.html")
-
-
-# ==============================
-# INCOME ROUTE (Fixes Your Error)
-# ==============================
-@app.route("/income")
-def income():
-    if "user" not in session:
-        return redirect(url_for("login"))
-    return "Income Page (You can build this later)"
-
-
-# ==============================
-# RUN APP
-# ==============================
-if __name__ == "__main__":
-    app.run(debug=True)
+# DO NOT run app.run() on Render
+# Gunicorn will handle it

@@ -313,6 +313,34 @@ def summary():
                            total_income=total_income,
                            total_expenses=total_expenses,
                            balance=balance)
+    # ==============================
+# CHANGE PASSWORD
+# ==============================
+@app.route("/change_password", methods=["GET", "POST"])
+def change_password():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        new_password = request.form["new_password"]
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "UPDATE users SET password=%s WHERE id=%s",
+            (new_password, session["user_id"])
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Password changed successfully")
+        return redirect(url_for("dashboard"))
+
+    return render_template("change_password.html")
+
 
 
 # ==============================

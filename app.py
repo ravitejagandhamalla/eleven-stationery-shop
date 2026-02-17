@@ -199,63 +199,26 @@ def view_records():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    t = request.args.get("t", "both")
-    start = request.args.get("start")
-    end = request.args.get("end")
-
     conn = get_db_connection()
     cur = conn.cursor()
 
-    incomes = []
-    expenses = []
+    # Fetch Income with date
+    cur.execute("""
+        SELECT id, date, amount, description
+        FROM income
+        WHERE user_id=%s
+        ORDER BY date DESC
+    """, (session["user_id"],))
+    incomes = cur.fetchall()
 
-    # =======================
-    # INCOME FILTER
-    # =======================
-    if t in ["both", "income"]:
-        query = """
-            SELECT id, date, amount, description
-            FROM income
-            WHERE user_id=%s
-        """
-        params = [session["user_id"]]
-
-        if start:
-            query += " AND date >= %s"
-            params.append(start)
-
-        if end:
-            query += " AND date <= %s"
-            params.append(end)
-
-        query += " ORDER BY date DESC"
-
-        cur.execute(query, tuple(params))
-        incomes = cur.fetchall()
-
-    # =======================
-    # EXPENSE FILTER
-    # =======================
-    if t in ["both", "expenses"]:
-        query = """
-            SELECT id, date, amount, purpose
-            FROM expenses
-            WHERE user_id=%s
-        """
-        params = [session["user_id"]]
-
-        if start:
-            query += " AND date >= %s"
-            params.append(start)
-
-        if end:
-            query += " AND date <= %s"
-            params.append(end)
-
-        query += " ORDER BY date DESC"
-
-        cur.execute(query, tuple(params))
-        expenses = cur.fetchall()
+    # Fetch Expenses with date
+    cur.execute("""
+        SELECT id, date, amount, purpose
+        FROM expenses
+        WHERE user_id=%s
+        ORDER BY date DESC
+    """, (session["user_id"],))
+    expenses = cur.fetchall()
 
     cur.close()
     conn.close()
@@ -265,7 +228,6 @@ def view_records():
         incomes=incomes,
         expenses=expenses
     )
-
 
 # ==============================
 # EDIT INCOME

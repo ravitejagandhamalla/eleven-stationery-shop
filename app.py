@@ -307,9 +307,9 @@ def summary():
 
     cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
                 (session["user_id"],))
-    total_expenses = cur.fetchone()[0]
+    total_expense = cur.fetchone()[0]
 
-    profit = total_income - total_expenses
+    profit = total_income - total_expense
 
     cur.close()
     conn.close()
@@ -317,9 +317,10 @@ def summary():
     return render_template(
         "summary.html",
         total_income=total_income,
-        total_expenses=total_expenses,
+        total_expense=total_expense,
         profit=profit
     )
+
 
     # ==============================
 # CHANGE PASSWORD

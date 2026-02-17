@@ -238,16 +238,18 @@ def view_records():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT amount, description FROM income WHERE user_id=%s", (session["user_id"],))
+    cur.execute("SELECT id, amount, description FROM income WHERE user_id=%s", (session["user_id"],))
     incomes = cur.fetchall()
 
-    cur.execute("SELECT amount, description FROM expenses WHERE user_id=%s", (session["user_id"],))
+    cur.execute("SELECT id, amount, description FROM expenses WHERE user_id=%s", (session["user_id"],))
     expenses = cur.fetchall()
 
     cur.close()
     conn.close()
 
     return render_template("view_records.html", incomes=incomes, expenses=expenses)
+
+
     # ==============================
 # SUMMARY
 # ==============================
@@ -285,51 +287,93 @@ def summary():
         balance=balance,
         profit=balance   # 👈 THIS FIXES ERROR
     )
-    # ==============================
-# EDIT INCOME
-# ==============================
-@app.route("/edit_income/<int:id>", methods=["GET", "POST"])
+
+@app.route("/edit_income/<int:id>", methods=["POST"])
 def edit_income(id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    amount = request.form["amount"]
+    description = request.form["description"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "UPDATE income SET amount=%s, description=%s WHERE id=%s AND user_id=%s",
+        (amount, description, id, session["user_id"])
+    )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Income updated successfully")
+    return redirect(url_for("view_records"))
+    @app.route("/delete_income/<int:id>")
+def delete_income(id):
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    if request.method == "POST":
-        amount = request.form["amount"]
-        description = request.form["description"]
-
-        cur.execute(
-            "UPDATE income SET amount=%s, description=%s WHERE id=%s AND user_id=%s",
-            (amount, description, id, session["user_id"])
-        )
-
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        flash("Income updated successfully")
-        return redirect(url_for("view_records"))
-
-    # GET request – fetch existing data
     cur.execute(
-        "SELECT amount, description FROM income WHERE id=%s AND user_id=%s",
+        "DELETE FROM income WHERE id=%s AND user_id=%s",
         (id, session["user_id"])
     )
-    income = cur.fetchone()
 
+    conn.commit()
     cur.close()
     conn.close()
 
-    if income is None:
-        flash("Income record not found")
-        return redirect(url_for("view_records"))
+    flash("Income deleted successfully")
+    return redirect(url_for("view_records"))
+    @app.route("/edit_expense/<int:id>", methods=["POST"])
+def edit_expense(id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-    return render_template(
-        "edit_income.html",
-        income=income
+    amount = request.form["amount"]
+    description = request.form["description"]
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "UPDATE expenses SET amount=%s, description=%s WHERE id=%s AND user_id=%s",
+        (amount, description, id, session["user_id"])
     )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Expense updated successfully")
+    return redirect(url_for("view_records"))
+    @app.route("/delete_expense/<int:id>")
+def delete_expense(id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "DELETE FROM expenses WHERE id=%s AND user_id=%s",
+        (id, session["user_id"])
+    )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Expense deleted successfully")
+    return redirect(url_for("view_records"))
+
+
+
+
 
 
 

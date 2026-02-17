@@ -3,7 +3,7 @@ import psycopg2
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+app.secret_key = "super-secret-key-123"
 
 
 # ==============================

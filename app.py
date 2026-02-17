@@ -199,20 +199,63 @@ def view_records():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    t = request.args.get("t", "both")
+    start = request.args.get("start")
+    end = request.args.get("end")
+
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        "SELECT id, amount, description FROM income WHERE user_id=%s ORDER BY id DESC",
-        (session["user_id"],),
-    )
-    incomes = cur.fetchall()
+    incomes = []
+    expenses = []
 
-    cur.execute(
-        "SELECT id, date, amount, purpose FROM expenses WHERE user_id=%s ORDER BY id DESC",
-        (session["user_id"],),
-    )
-    expenses_data = cur.fetchall()
+    # =======================
+    # INCOME FILTER
+    # =======================
+    if t in ["both", "income"]:
+        query = """
+            SELECT id, date, amount, description
+            FROM income
+            WHERE user_id=%s
+        """
+        params = [session["user_id"]]
+
+        if start:
+            query += " AND date >= %s"
+            params.append(start)
+
+        if end:
+            query += " AND date <= %s"
+            params.append(end)
+
+        query += " ORDER BY date DESC"
+
+        cur.execute(query, tuple(params))
+        incomes = cur.fetchall()
+
+    # =======================
+    # EXPENSE FILTER
+    # =======================
+    if t in ["both", "expenses"]:
+        query = """
+            SELECT id, date, amount, purpose
+            FROM expenses
+            WHERE user_id=%s
+        """
+        params = [session["user_id"]]
+
+        if start:
+            query += " AND date >= %s"
+            params.append(start)
+
+        if end:
+            query += " AND date <= %s"
+            params.append(end)
+
+        query += " ORDER BY date DESC"
+
+        cur.execute(query, tuple(params))
+        expenses = cur.fetchall()
 
     cur.close()
     conn.close()
@@ -220,7 +263,7 @@ def view_records():
     return render_template(
         "view_records.html",
         incomes=incomes,
-        expenses=expenses_data,
+        expenses=expenses
     )
 
 

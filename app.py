@@ -338,19 +338,59 @@ def summary():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s",
-        (session["user_id"],),
-    )
+    # Total Income
+    cur.execute("""
+        SELECT COALESCE(SUM(amount),0)
+        FROM income
+        WHERE user_id=%s
+    """, (session["user_id"],))
     total_income = cur.fetchone()[0]
 
-    cur.execute(
-        "SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
-        (session["user_id"],),
-    )
+    # Total Expense
+    cur.execute("""
+        SELECT COALESCE(SUM(amount),0)
+        FROM expenses
+        WHERE user_id=%s
+    """, (session["user_id"],))
     total_expense = cur.fetchone()[0]
 
     profit = total_income - total_expense
+
+    # ==========================
+    # DAILY BREAKDOWN QUERY
+    # ==========================
+
+    cur.execute("""
+        SELECT d.date,
+               COALESCE(i.total_income, 0),
+               COALESCE(e.total_expense, 0),
+               COALESCE(i.total_income, 0) - COALESCE(e.total_expense, 0) AS daily_profit
+        FROM (
+            SELECT date FROM income WHERE user_id=%s
+            UNION
+            SELECT date FROM expenses WHERE user_id=%s
+        ) d
+        LEFT JOIN (
+            SELECT date, SUM(amount) AS total_income
+            FROM income
+            WHERE user_id=%s
+            GROUP BY date
+        ) i ON d.date = i.date
+        LEFT JOIN (
+            SELECT date, SUM(amount) AS total_expense
+            FROM expenses
+            WHERE user_id=%s
+            GROUP BY date
+        ) e ON d.date = e.date
+        ORDER BY d.date DESC
+    """, (
+        session["user_id"],
+        session["user_id"],
+        session["user_id"],
+        session["user_id"]
+    ))
+
+    daily_data = cur.fetchall()
 
     cur.close()
     conn.close()
@@ -360,6 +400,7 @@ def summary():
         total_income=total_income,
         total_expense=total_expense,
         profit=profit,
+        daily_data=daily_data
     )
 
 

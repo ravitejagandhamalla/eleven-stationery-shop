@@ -222,6 +222,35 @@ def view_records():
     conn.close()
 
     return render_template("view_records.html", incomes=incomes, expenses=expenses)
+    # ==============================
+# SUMMARY
+# ==============================
+@app.route("/summary")
+def summary():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s", (session["user_id"],))
+    total_income = cur.fetchone()[0]
+
+    cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s", (session["user_id"],))
+    total_expense = cur.fetchone()[0]
+
+    cur.close()
+    conn.close()
+
+    balance = total_income - total_expense
+
+    return render_template(
+        "summary.html",
+        total_income=total_income,
+        total_expense=total_expense,
+        balance=balance
+    )
+
 
 
 

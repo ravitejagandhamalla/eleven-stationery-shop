@@ -169,12 +169,12 @@ def view_records():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, amount, description FROM income WHERE user_id=%s",
-                (session["user_id"],))
+    cur.execute("SELECT id, amount, description FROM income WHERE user_id=%s ORDER BY date DESC", (session["user_id"],))
     incomes = cur.fetchall()
 
-    cur.execute("SELECT id, amount, description FROM expenses WHERE user_id=%s",
-                (session["user_id"],))
+   cur.execute("SELECT id, date, amount, purpose FROM expenses WHERE user_id=%s ORDER BY date DESC",
+    (session["user_id"],))
+
     expenses = cur.fetchall()
 
     cur.close()

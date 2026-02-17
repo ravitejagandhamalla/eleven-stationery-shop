@@ -25,7 +25,7 @@
 
 <h3>Daily Breakdown</h3>
 
-<table>
+<table border="1" width="100%">
     <tr>
         <th>Date</th>
         <th>Income</th>
@@ -33,17 +33,15 @@
         <th>Profit</th>
     </tr>
 
-    {% for d in daily %}
+    {% for row in daily_data %}
     <tr>
-        <<tr>
-    <td>{{ d["date"] }}</td>
-    <td>₹{{ "%.2f"|format(d["inc"]) }}</td>
-    <td>₹{{ "%.2f"|format(d["exp"]) }}</td>
-    <td>₹{{ "%.2f"|format(d["inc"] - d["exp"]) }}</td>
-</tr>
-
+        <td>{{ row[0] }}</td>
+        <td>₹{{ "%.2f"|format(row[1]) }}</td>
+        <td>₹{{ "%.2f"|format(row[2]) }}</td>
+        <td>₹{{ "%.2f"|format(row[3]) }}</td>
     </tr>
     {% endfor %}
 </table>
+
 
 {% endblock %}

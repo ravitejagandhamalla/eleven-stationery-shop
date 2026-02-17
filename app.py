@@ -121,6 +121,17 @@ def dashboard():
 def logout():
     session.clear()
     return redirect(url_for("login"))
+    @app.route("/change_password")
+@app.route("/change_password")
+def change_password():
+    return render_template("change_password.html")
+
+
+@app.route("/forgot_password")
+def forgot_password():
+    return render_template("forgot_password.html")
+
+
 
 
 # ==============================

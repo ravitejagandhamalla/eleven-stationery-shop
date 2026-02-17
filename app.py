@@ -84,7 +84,33 @@ def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    return render_template("dashboard.html")
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s",
+        (session["user_id"],)
+    )
+    total_income = cur.fetchone()[0]
+
+    cur.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
+        (session["user_id"],)
+    )
+    total_expense = cur.fetchone()[0]
+
+    balance = total_income - total_expense
+
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "dashboard.html",
+        total_income=total_income,
+        total_expense=total_expense,
+        balance=balance
+    )
+
 
 
 # ==============================
@@ -259,6 +285,52 @@ def summary():
         balance=balance,
         profit=balance   # 👈 THIS FIXES ERROR
     )
+    # ==============================
+# EDIT INCOME
+# ==============================
+@app.route("/edit_income/<int:id>", methods=["GET", "POST"])
+def edit_income(id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if request.method == "POST":
+        amount = request.form["amount"]
+        description = request.form["description"]
+
+        cur.execute(
+            "UPDATE income SET amount=%s, description=%s WHERE id=%s AND user_id=%s",
+            (amount, description, id, session["user_id"])
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Income updated successfully")
+        return redirect(url_for("view_records"))
+
+    # GET request – fetch existing data
+    cur.execute(
+        "SELECT amount, description FROM income WHERE id=%s AND user_id=%s",
+        (id, session["user_id"])
+    )
+    income = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if income is None:
+        flash("Income record not found")
+        return redirect(url_for("view_records"))
+
+    return render_template(
+        "edit_income.html",
+        income=income
+    )
+
 
 
 

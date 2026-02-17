@@ -10,7 +10,7 @@ app.secret_key = "super-secret-key-123"
 # DATABASE CONNECTION
 # ==============================
 def get_db_connection():
-    database_url = os.environ.get("postgresql://ravi_teja_user:8OVmBnpToXXuq3qAiL9SmMof3AYD8NvO@dpg-d69va7vpm1nc739obqa0-a.virginia-postgres.render.com:5432/ravi_teja")
+    database_url = os.environ.get("DATABASE_URL")
 
     if not database_url:
         raise RuntimeError("DATABASE_URL is not set")

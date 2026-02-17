@@ -199,20 +199,19 @@ def edit_income(id):
 
     cur.execute(
         "UPDATE income SET amount=%s, description=%s WHERE id=%s AND user_id=%s",
-        (amount, description, id, session["user_id"])
+        (amount, description, id, session["user_id"]),
     )
 
     conn.commit()
     cur.close()
     conn.close()
 
-    flash("Income updated successfully")
     return redirect(url_for("view_records"))
+
 
 
 # ==============================
 # DELETE INCOME
-# ==============================
 @app.route("/delete_income/<int:id>")
 def delete_income(id):
     if "user_id" not in session:
@@ -223,17 +222,20 @@ def delete_income(id):
 
     cur.execute(
         "DELETE FROM income WHERE id=%s AND user_id=%s",
-        (id, session["user_id"])
+        (id, session["user_id"]),
     )
 
     conn.commit()
     cur.close()
     conn.close()
 
-    flash("Income deleted successfully")
     return redirect(url_for("view_records"))
 
 
+
+# ==============================
+# EDIT EXPENSE
+# ==============================
 # ==============================
 # EDIT EXPENSE
 # ==============================
@@ -250,15 +252,15 @@ def edit_expense(id):
 
     cur.execute(
         "UPDATE expenses SET amount=%s, description=%s WHERE id=%s AND user_id=%s",
-        (amount, description, id, session["user_id"])
+        (amount, description, id, session["user_id"]),
     )
 
     conn.commit()
     cur.close()
     conn.close()
 
-    flash("Expense updated successfully")
     return redirect(url_for("view_records"))
+
 
 
 # ==============================
@@ -274,15 +276,16 @@ def delete_expense(id):
 
     cur.execute(
         "DELETE FROM expenses WHERE id=%s AND user_id=%s",
-        (id, session["user_id"])
+        (id, session["user_id"]),
     )
 
     conn.commit()
     cur.close()
     conn.close()
 
-    flash("Expense deleted successfully")
     return redirect(url_for("view_records"))
+
+
 
 
 # ==============================
@@ -340,6 +343,32 @@ def change_password():
         return redirect(url_for("dashboard"))
 
     return render_template("change_password.html")
+    # ==============================
+# FORGOT PASSWORD
+# ==============================
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        username = request.form["username"]
+        new_password = request.form["new_password"]
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "UPDATE users SET password=%s WHERE username=%s",
+            (new_password, username),
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Password updated successfully")
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
+
 
 
 

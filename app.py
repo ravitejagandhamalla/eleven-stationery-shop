@@ -3,47 +3,49 @@ import psycopg2
 import psycopg2.extras
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 # -------------------------------------------------
-# ENV SETUP
+# Load Environment Variables
 # -------------------------------------------------
 load_dotenv()
 
-DATABASE_URL = os.environ.get("postgresql://postgres.vjmksejmnxgowpnwgaxv:dlmHeBHcR0IWx8Jm@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")
-SECRET_KEY = os.environ.get("SECRET_KEY", "super-secret-key-123")
-
-# -------------------------------------------------
-# APP CONFIG
-# -------------------------------------------------
 app = Flask(__name__)
-app.secret_key = SECRET_KEY
+app.secret_key = os.getenv("SECRET_KEY", "super-secret-key")
+
+DATABASE_URL = os.getenv("postgresql://ravi_teja_user:8OVmBnpToXXuq3qAiL9SmMof3AYD8NvO@dpg-d69va7vpm1nc739obqa0-a.virginia-postgres.render.com/ravi_teja")
 
 
 # -------------------------------------------------
-# DATABASE CONNECTION (SAFE – NO CRASH)
+# Database Connection Function
 # -------------------------------------------------
 def get_db_connection():
     if not DATABASE_URL:
-        print("⚠️ DATABASE_URL not set")
-        return None
+        raise RuntimeError("DATABASE_URL is not set")
 
-    return psycopg2.connect(
-        DATABASE_URL,
-        sslmode="require",
-        cursor_factory=psycopg2.extras.RealDictCursor
-    )
+    # Fix for Render (ensures sslmode=require)
+    if DATABASE_URL.startswith("postgres://"):
+        db_url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    else:
+        db_url = DATABASE_URL
+
+    return psycopg2.connect(db_url, sslmode="require")
 
 
 # -------------------------------------------------
-# ROUTES
+# Routes
 # -------------------------------------------------
+
 @app.route("/")
 def index():
-    if "user_id" in session:
+    if "user" in session:
         return redirect(url_for("dashboard"))
     return redirect(url_for("login"))
 
 
+# -------------------------------------------------
+# LOGIN
+# -------------------------------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -51,39 +53,42 @@ def login():
         password = request.form.get("password")
 
         conn = get_db_connection()
-        if conn is None:
-            flash("Database connection error", "danger")
-            return redirect(url_for("login"))
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        cur = conn.cursor()
         cur.execute(
             "SELECT * FROM users WHERE email = %s AND password = %s",
             (email, password)
         )
+
         user = cur.fetchone()
 
         cur.close()
         conn.close()
 
         if user:
-            session["user_id"] = user["id"]
-            session["email"] = user["email"]
+            session["user"] = user["email"]
             return redirect(url_for("dashboard"))
         else:
-            flash("Invalid email or password", "danger")
+            flash("Invalid email or password")
             return redirect(url_for("login"))
 
     return render_template("login.html")
 
 
+# -------------------------------------------------
+# DASHBOARD
+# -------------------------------------------------
 @app.route("/dashboard")
 def dashboard():
-    if "user_id" not in session:
+    if "user" not in session:
         return redirect(url_for("login"))
 
-    return render_template("dashboard.html", email=session.get("email"))
+    return render_template("dashboard.html", user=session["user"])
 
 
+# -------------------------------------------------
+# LOGOUT
+# -------------------------------------------------
 @app.route("/logout")
 def logout():
     session.clear()
@@ -91,7 +96,42 @@ def logout():
 
 
 # -------------------------------------------------
-# MAIN
+# Forgot Password (Optional)
+# -------------------------------------------------
+@app.route("/forgot_password")
+def forgot_password():
+    return render_template("forgot_password.html")
+
+
+# -------------------------------------------------
+# Change Password (Optional)
+# -------------------------------------------------
+@app.route("/change_password", methods=["GET", "POST"])
+def change_password():
+    if request.method == "POST":
+        email = request.form.get("email")
+        new_password = request.form.get("password")
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            "UPDATE users SET password = %s WHERE email = %s",
+            (new_password, email)
+        )
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Password updated successfully")
+        return redirect(url_for("login"))
+
+    return render_template("change_password.html")
+
+
+# -------------------------------------------------
+# Run Locally
 # -------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True)

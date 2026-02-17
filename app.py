@@ -134,26 +134,28 @@ def expenses():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    conn = get_db_connection()
+    cur = conn.cursor()
+
     if request.method == "POST":
+        date = request.form["date"]
         amount = request.form["amount"]
-        description = request.form["description"]
+        purpose = request.form["purpose"]
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-
-        cur.execute(
-            "INSERT INTO expenses (user_id, amount, description) VALUES (%s,%s,%s)",
-            (session["user_id"], amount, description)
-        )
+        cur.execute("""
+            INSERT INTO expenses (user_id, date, amount, purpose)
+            VALUES (%s, %s, %s, %s)
+        """, (session["user_id"], date, amount, purpose))
 
         conn.commit()
         cur.close()
         conn.close()
 
-        flash("Expense added successfully")
         return redirect(url_for("dashboard"))
 
-    return render_template("expenses.html")
+    cur.close()
+    conn.close()
+    return render_template("expense.html")
 
 
 # ==============================
@@ -305,17 +307,20 @@ def summary():
 
     cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
                 (session["user_id"],))
-    total_expenses = cur.fetchone()[0]
+    total_expense = cur.fetchone()[0]
 
-    balance = total_income - total_expenses
+    profit = total_income - total_expense
 
     cur.close()
     conn.close()
 
-    return render_template("summary.html",
-                           total_income=total_income,
-                           total_expenses=total_expenses,
-                           balance=balance)
+    return render_template(
+        "summary.html",
+        total_income=total_income,
+        total_expense=total_expense,
+        profit=profit
+    )
+
     # ==============================
 # CHANGE PASSWORD
 # ==============================

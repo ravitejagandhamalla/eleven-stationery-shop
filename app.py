@@ -78,22 +78,59 @@ def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s", (session["user_id"],))
-    total_income = cur.fetchone()[0]
+    # Today's income
+    cur.execute("""
+        SELECT COALESCE(SUM(amount),0)
+        FROM income
+        WHERE user_id=%s AND date = CURRENT_DATE
+    """, (session["user_id"],))
+    today_income = cur.fetchone()[0]
 
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s", (session["user_id"],))
-    total_expenses = cur.fetchone()[0]
+    # Today's expense
+    cur.execute("""
+        SELECT COALESCE(SUM(amount),0)
+        FROM expenses
+        WHERE user_id=%s AND date = CURRENT_DATE
+    """, (session["user_id"],))
+    today_expense = cur.fetchone()[0]
 
-    balance = total_income - total_expenses
+    # Total items (income entries)
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM income
+        WHERE user_id=%s
+    """, (session["user_id"],))
+    total_items = cur.fetchone()[0]
+
+    # Monthly profit
+    cur.execute("""
+        SELECT COALESCE(SUM(amount),0)
+        FROM income
+        WHERE user_id=%s
+        AND date_trunc('month', date) = date_trunc('month', CURRENT_DATE)
+    """, (session["user_id"],))
+    monthly_income = cur.fetchone()[0]
+
+    cur.execute("""
+        SELECT COALESCE(SUM(amount),0)
+        FROM expenses
+        WHERE user_id=%s
+        AND date_trunc('month', date) = date_trunc('month', CURRENT_DATE)
+    """, (session["user_id"],))
+    monthly_expense = cur.fetchone()[0]
+
+    monthly_profit = monthly_income - monthly_expense
 
     cur.close()
     conn.close()
 
-    return render_template("dashboard.html",
-                           total_income=total_income,
-                           total_expenses=total_expenses,
-                           balance=balance,
-                           username=session["username"])
+    return render_template(
+        "dashboard.html",
+        today_income=today_income,
+        today_expense=today_expense,
+        total_items=total_items,
+        monthly_profit=monthly_profit
+    )
 
 
 # ==============================

@@ -9,15 +9,22 @@ app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key-123")
 # ==============================
 # DATABASE CONNECTION
 # ==============================
+import os
+import psycopg2
+
 def get_db_connection():
-    database_url = os.environ.get("postgresql://ravi_teja_user:8OVmBnpToXXuq3qAiL9SmMof3AYD8NvO@dpg-d69va7vpm1nc739obqa0-a.virginia-postgres.render.com/ravi_teja")
+    database_url = os.environ.get("DATABASE_URL")
 
     if not database_url:
-        print("ERROR: DATABASE_URL not set")
+        print("ERROR: DATABASE_URL not found in environment")
         return None
 
-    return psycopg2.connect(database_url, sslmode="require")
-
+    try:
+        conn = psycopg2.connect(database_url, sslmode="require")
+        return conn
+    except Exception as e:
+        print("Database connection failed:", e)
+        return None
 
 # ==============================
 # HOME
@@ -35,29 +42,32 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-
         conn = get_db_connection()
+
         if conn is None:
             return "Database connection error"
 
         cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM users WHERE email=%s AND password=%s",
-            (email, password),
-        )
+
+        email = request.form["email"]
+        password = request.form["password"]
+
+        cur.execute("SELECT * FROM users WHERE email=%s AND password=%s",
+                    (email, password))
+
         user = cur.fetchone()
+
         cur.close()
         conn.close()
 
         if user:
-            session["user"] = email
+            session["user"] = user[1]
             return redirect(url_for("index"))
         else:
-            return "Invalid email or password"
+            return "Invalid credentials"
 
     return render_template("login.html")
+
 
 
 # ==============================

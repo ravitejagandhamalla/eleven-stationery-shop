@@ -10,12 +10,18 @@ app.secret_key = "supersecretkey"
 # DATABASE CONNECTION
 # ==============================
 def get_db_connection():
-    database_url = os.environ.get("postgresql://ravi_teja_user:8OVmBnpToXXuq3qAiL9SmMof3AYD8NvO@dpg-d69va7vpm1nc739obqa0-a.virginia-postgres.render.com/ravi_teja")
+    database_url = os.environ.get("postgresql://ravi_teja_user:8OVmBnpToXXuq3qAiL9SmMof3AYD8NvO@dpg-d69va7vpm1nc739obqa0-a.virginia-postgres.render.com:5432/ravi_teja
+")
+
     if not database_url:
         raise RuntimeError("DATABASE_URL is not set")
 
-    conn = psycopg2.connect(database_url)
+    conn = psycopg2.connect(
+        database_url,
+        sslmode="require"
+    )
     return conn
+
 
 
 # ==============================

@@ -41,7 +41,7 @@ def login():
 
         cur.execute(
             "SELECT id FROM users WHERE username=%s AND password=%s",
-            (username, password)
+            (username, password),
         )
         user = cur.fetchone()
 
@@ -78,7 +78,6 @@ def dashboard():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    # Today's income
     cur.execute("""
         SELECT COALESCE(SUM(amount),0)
         FROM income
@@ -86,7 +85,6 @@ def dashboard():
     """, (session["user_id"],))
     today_income = cur.fetchone()[0]
 
-    # Today's expense
     cur.execute("""
         SELECT COALESCE(SUM(amount),0)
         FROM expenses
@@ -94,7 +92,6 @@ def dashboard():
     """, (session["user_id"],))
     today_expense = cur.fetchone()[0]
 
-    # Total items (income entries)
     cur.execute("""
         SELECT COUNT(*)
         FROM income
@@ -102,7 +99,6 @@ def dashboard():
     """, (session["user_id"],))
     total_items = cur.fetchone()[0]
 
-    # Monthly profit
     cur.execute("""
         SELECT COALESCE(SUM(amount),0)
         FROM income
@@ -129,7 +125,7 @@ def dashboard():
         today_income=today_income,
         today_expense=today_expense,
         total_items=total_items,
-        monthly_profit=monthly_profit
+        monthly_profit=monthly_profit,
     )
 
 
@@ -150,7 +146,7 @@ def income():
 
         cur.execute(
             "INSERT INTO income (user_id, amount, description) VALUES (%s,%s,%s)",
-            (session["user_id"], amount, description)
+            (session["user_id"], amount, description),
         )
 
         conn.commit()
@@ -206,20 +202,26 @@ def view_records():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, amount, description FROM income WHERE user_id=%s ORDER BY date DESC", (session["user_id"],))
+    cur.execute(
+        "SELECT id, amount, description FROM income WHERE user_id=%s ORDER BY id DESC",
+        (session["user_id"],),
+    )
     incomes = cur.fetchall()
 
-   cur.execute("SELECT id, date, amount, purpose FROM expenses WHERE user_id=%s ORDER BY date DESC",
-    (session["user_id"],))
-
-    expenses = cur.fetchall()
+    cur.execute(
+        "SELECT id, date, amount, purpose FROM expenses WHERE user_id=%s ORDER BY id DESC",
+        (session["user_id"],),
+    )
+    expenses_data = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return render_template("view_records.html",
-                           incomes=incomes,
-                           expenses=expenses)
+    return render_template(
+        "view_records.html",
+        incomes=incomes,
+        expenses=expenses_data,
+    )
 
 
 # ==============================
@@ -248,9 +250,9 @@ def edit_income(id):
     return redirect(url_for("view_records"))
 
 
-
 # ==============================
 # DELETE INCOME
+# ==============================
 @app.route("/delete_income/<int:id>")
 def delete_income(id):
     if "user_id" not in session:
@@ -271,10 +273,6 @@ def delete_income(id):
     return redirect(url_for("view_records"))
 
 
-
-# ==============================
-# EDIT EXPENSE
-# ==============================
 # ==============================
 # EDIT EXPENSE
 # ==============================
@@ -284,14 +282,14 @@ def edit_expenses(id):
         return redirect(url_for("login"))
 
     amount = request.form["amount"]
-    description = request.form["description"]
+    purpose = request.form["purpose"]
 
     conn = get_db_connection()
     cur = conn.cursor()
 
     cur.execute(
-        "UPDATE expenses SET amount=%s, description=%s WHERE id=%s AND user_id=%s",
-        (amount, description, id, session["user_id"]),
+        "UPDATE expenses SET amount=%s, purpose=%s WHERE id=%s AND user_id=%s",
+        (amount, purpose, id, session["user_id"]),
     )
 
     conn.commit()
@@ -299,7 +297,6 @@ def edit_expenses(id):
     conn.close()
 
     return redirect(url_for("view_records"))
-
 
 
 # ==============================
@@ -325,8 +322,6 @@ def delete_expense(id):
     return redirect(url_for("view_records"))
 
 
-
-
 # ==============================
 # SUMMARY
 # ==============================
@@ -338,12 +333,16 @@ def summary():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s",
-                (session["user_id"],))
+    cur.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s",
+        (session["user_id"],),
+    )
     total_income = cur.fetchone()[0]
 
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
-                (session["user_id"],))
+    cur.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
+        (session["user_id"],),
+    )
     total_expense = cur.fetchone()[0]
 
     profit = total_income - total_expense
@@ -355,11 +354,11 @@ def summary():
         "summary.html",
         total_income=total_income,
         total_expense=total_expense,
-        profit=profit
+        profit=profit,
     )
 
 
-    # ==============================
+# ==============================
 # CHANGE PASSWORD
 # ==============================
 @app.route("/change_password", methods=["GET", "POST"])
@@ -375,7 +374,7 @@ def change_password():
 
         cur.execute(
             "UPDATE users SET password=%s WHERE id=%s",
-            (new_password, session["user_id"])
+            (new_password, session["user_id"]),
         )
 
         conn.commit()
@@ -386,7 +385,9 @@ def change_password():
         return redirect(url_for("dashboard"))
 
     return render_template("change_password.html")
-    # ==============================
+
+
+# ==============================
 # FORGOT PASSWORD
 # ==============================
 @app.route("/forgot_password", methods=["GET", "POST"])
@@ -413,11 +414,8 @@ def forgot_password():
     return render_template("forgot_password.html")
 
 
-
-
 # ==============================
 # MAIN
 # ==============================
 if __name__ == "__main__":
     app.run(debug=True)
-

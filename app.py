@@ -201,6 +201,28 @@ def change_password():
         return redirect(url_for("dashboard"))
 
     return render_template("change_password.html")
+    # ==============================
+# VIEW RECORDS
+# ==============================
+@app.route("/view_records")
+def view_records():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT amount, description FROM income WHERE user_id=%s", (session["user_id"],))
+    incomes = cur.fetchall()
+
+    cur.execute("SELECT amount, description FROM expenses WHERE user_id=%s", (session["user_id"],))
+    expenses = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return render_template("view_records.html", incomes=incomes, expenses=expenses)
+
 
 
 # ==============================

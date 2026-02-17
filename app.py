@@ -233,23 +233,33 @@ def summary():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s", (session["user_id"],))
+    # Total Income
+    cur.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s",
+        (session["user_id"],)
+    )
     total_income = cur.fetchone()[0]
 
-    cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s", (session["user_id"],))
+    # Total Expenses
+    cur.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
+        (session["user_id"],)
+    )
     total_expense = cur.fetchone()[0]
+
+    balance = total_income - total_expense
 
     cur.close()
     conn.close()
-
-    balance = total_income - total_expense
 
     return render_template(
         "summary.html",
         total_income=total_income,
         total_expense=total_expense,
-        balance=balance
+        balance=balance,
+        profit=balance   # 👈 THIS FIXES ERROR
     )
+
 
 
 

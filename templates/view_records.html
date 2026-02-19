@@ -34,35 +34,24 @@
         <th>Action</th>
     </tr>
 
-    {% for i in incomes %}
-    <!-- Normal Row -->
-    <tr id="income-row-{{ i[0] }}">
-        <td>{{ i[1] }}</td>
-        <td>{{ i[2] }}</td>
-        <td>{{ i[3] }}</td>
+   {% for i in incomes %}
+<tr>
+    <form method="POST" action="{{ url_for('edit_income', id=i[0]) }}">
+        <td>{{ i[1] }}</td>  <!-- date -->
         <td>
-            <button type="button" onclick="showIncomeEdit({{ i[0] }})">Update</button>
+            <input type="number" name="amount" value="{{ i[2] }}" required>
+        </td>
+        <td>
+            <input type="text" name="description" value="{{ i[3] }}">
+        </td>
+        <td>
+            <button type="submit">Save</button>
             <a href="{{ url_for('delete_income', id=i[0]) }}">Delete</a>
         </td>
-    </tr>
+    </form>
+</tr>
+{% endfor %}
 
-    <!-- Hidden Edit Row -->
-    <tr id="income-edit-{{ i[0] }}" style="display:none;">
-        <td colspan="4">
-            <form method="POST" action="{{ url_for('edit_income', id=i[0]) }}">
-                Date: {{ i[1] }} <br><br>
-                Amount:
-                <input type="number" name="amount" value="{{ i[2] }}" required>
-
-                Description:
-                <input type="text" name="description" value="{{ i[3] }}">
-
-                <button type="submit">Save</button>
-                <button type="button" onclick="hideIncomeEdit({{ i[0] }})">Cancel</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
 </table>
 
 
@@ -83,34 +72,23 @@
     </tr>
 
     {% for e in expenses %}
-    <!-- Normal Row -->
-    <tr id="expense-row-{{ e[0] }}">
-        <td>{{ e[1] }}</td>
-        <td>{{ e[2] }}</td>
-        <td>{{ e[3] }}</td>
+<tr>
+    <form method="POST" action="{{ url_for('edit_expenses', id=e[0]) }}">
+        <td>{{ e[1] }}</td>  <!-- date -->
         <td>
-            <button type="button" onclick="showExpenseEdit({{ e[0] }})">Update</button>
+            <input type="number" name="amount" value="{{ e[2] }}" required>
+        </td>
+        <td>
+            <input type="text" name="purpose" value="{{ e[3] }}">
+        </td>
+        <td>
+            <button type="submit">Save</button>
             <a href="{{ url_for('delete_expense', id=e[0]) }}">Delete</a>
         </td>
-    </tr>
+    </form>
+</tr>
+{% endfor %}
 
-    <!-- Hidden Edit Row -->
-    <tr id="expense-edit-{{ e[0] }}" style="display:none;">
-        <td colspan="4">
-            <form method="POST" action="{{ url_for('edit_expenses', id=e[0]) }}">
-                Date: {{ e[1] }} <br><br>
-                Amount:
-                <input type="number" name="amount" value="{{ e[2] }}" required>
-
-                Purpose:
-                <input type="text" name="description" value="{{ e[3] }}">
-
-                <button type="submit">Save</button>
-                <button type="button" onclick="hideExpenseEdit({{ e[0] }})">Cancel</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
 </table>
 
 

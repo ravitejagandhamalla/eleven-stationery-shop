@@ -4,14 +4,186 @@
   <meta charset="utf-8">
   <title>ELEVEN STATIONARY SHOP</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+  <style>
+    /* ===============================
+       GLOBAL STYLES
+    =============================== */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #f1f5f9;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    /* ===============================
+       HEADER
+    =============================== */
+    header {
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(12px);
+        padding: 20px 40px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    header h1 {
+        font-size: 26px;
+        font-weight: 700;
+        color: #38bdf8;
+        letter-spacing: 1px;
+        margin-bottom: 10px;
+    }
+
+    /* ===============================
+       NAVIGATION
+    =============================== */
+    nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: center;
+    }
+
+    nav a {
+        text-decoration: none;
+        color: #e2e8f0;
+        font-weight: 500;
+        position: relative;
+        transition: 0.3s;
+        padding-bottom: 4px;
+    }
+
+    nav a::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 0%;
+        height: 2px;
+        background: #38bdf8;
+        transition: 0.3s;
+    }
+
+    nav a:hover::after {
+        width: 100%;
+    }
+
+    nav a:hover {
+        color: #38bdf8;
+    }
+
+    hr {
+        border: none;
+        height: 1px;
+        background: rgba(255,255,255,0.1);
+        margin-top: 15px;
+    }
+
+    /* ===============================
+       MAIN CONTENT
+    =============================== */
+    main {
+        flex: 1;
+        padding: 40px;
+        animation: slideUp 0.5s ease-in-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ===============================
+       FLASH MESSAGES
+    =============================== */
+    .flashes {
+        margin-bottom: 20px;
+    }
+
+    .flash {
+        padding: 12px 18px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        font-weight: 500;
+        animation: fadeInFlash 0.4s ease-in-out;
+    }
+
+    @keyframes fadeInFlash {
+        from { opacity: 0; transform: translateX(-10px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .flash.success {
+        background: #16a34a;
+        color: white;
+    }
+
+    .flash.error {
+        background: #dc2626;
+        color: white;
+    }
+
+    .flash.warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    /* ===============================
+       FOOTER
+    =============================== */
+    footer {
+        text-align: center;
+        padding: 20px;
+        background: rgba(255,255,255,0.03);
+        font-size: 14px;
+        color: #94a3b8;
+    }
+
+    /* ===============================
+       RESPONSIVE
+    =============================== */
+    @media (max-width: 768px) {
+        nav {
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        main {
+            padding: 20px;
+        }
+    }
+  </style>
+
 </head>
+
 <body>
 
 <header>
   <h1>ELEVEN STATIONARY SHOP</h1>
 
-  {% if request.endpoint != 'login' %} 
+  {% if request.endpoint != 'login' %}
   <nav>
       <a href="{{ url_for('index') }}">Home</a>
       <a href="{{ url_for('income') }}">Add Income</a>
@@ -20,9 +192,11 @@
       <a href="{{ url_for('summary') }}">Summary</a>
 
       {% if session.get('user') %}
-          | <a href="{{ url_for('logout') }}">Logout ({{ session.get('user') }})</a>
+          <a href="{{ url_for('logout') }}">
+              Logout ({{ session.get('user') }})
+          </a>
       {% else %}
-          | <a href="{{ url_for('login') }}">Logout</a>
+          <a href="{{ url_for('login') }}">Login</a>
       {% endif %}
   </nav>
   <hr>
@@ -44,8 +218,7 @@
 </main>
 
 <footer>
-  <hr>
-  <small>ELEVEN STATIONARY SHOP</small>
+  © 2026 ELEVEN STATIONARY SHOP • All Rights Reserved
 </footer>
 
 </body>

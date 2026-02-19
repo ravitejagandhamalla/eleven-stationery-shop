@@ -22,7 +22,7 @@
       {% if session.get('user') %}
           | <a href="{{ url_for('logout') }}">Logout ({{ session.get('user') }})</a>
       {% else %}
-          | <a href="{{ url_for('login') }}">Login</a>
+          | <a href="{{ url_for('login') }}">Logout</a>
       {% endif %}
   </nav>
   <hr>

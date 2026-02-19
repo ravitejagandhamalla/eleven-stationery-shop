@@ -472,8 +472,12 @@ def change_password():
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        username = request.form["username"]
-        new_password = request.form["new_password"]
+        username = request.form.get("username")
+        new_password = request.form.get("new_password")
+
+        if not username or not new_password:
+            flash("All fields required")
+            return redirect(url_for("forgot_password"))
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -491,6 +495,7 @@ def forgot_password():
         return redirect(url_for("login"))
 
     return render_template("forgot_password.html")
+
 
 
 # ==============================

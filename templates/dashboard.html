@@ -2,65 +2,127 @@
 {% block content %}
 
 <style>
-    .cards {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-    }
 
-    .card {
-        background: white;
-        padding: 25px;
-        width: 260px;
-        border-radius: 12px;
-        text-align: center;
-        box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
+/* ===== Background ===== */
+body {
+    background: linear-gradient(-45deg, #141e30, #243b55, #1f2937, #0f172a);
+    background-size: 400% 400%;
+    animation: gradientBG 12s ease infinite;
+    color: white;
+}
 
-    .card i {
-        font-size: 45px;
-        margin-bottom: 15px;
-        color: #ff9800;
-    }
+/* Animated background */
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 
-    .card h3 {
-        font-size: 22px;
-        font-weight: 700;
-    }
+/* Page Title */
+.dashboard-title {
+    text-align: center;
+    font-size: 38px;
+    font-weight: 800;
+    margin-bottom: 40px;
+    letter-spacing: 1px;
+    animation: fadeInDown 0.8s ease;
+}
 
-    .card p {
-        font-size: 18px;
-        margin-top: 10px;
-        color: #444;
-    }
+/* Cards Grid */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    padding: 20px;
+}
+
+/* Glass Card */
+.card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 18px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    transition: 0.4s ease;
+    animation: fadeInUp 0.8s ease;
+}
+
+/* Hover Effect */
+.card:hover {
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+}
+
+/* Icons */
+.card-icon {
+    font-size: 45px;
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* Different Icon Colors */
+.income { color: #22c55e; }
+.expense { color: #ef4444; }
+.items { color: #3b82f6; }
+.profit { color: #facc15; }
+
+/* Card Title */
+.card h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+/* Value */
+.card p {
+    font-size: 26px;
+    font-weight: bold;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 </style>
 
-<h1>Dashboard</h1>
+<div class="dashboard-title">
+    Welcome, {{ session.get('username') }} 👋
+</div>
 
 <div class="cards">
+
     <div class="card">
-        <i class="fa-solid fa-money-bill-trend-up"></i>
+        <span class="card-icon income">💰</span>
         <h3>Today's Income</h3>
-        <p>₹ {{ today_income }}</p>
+        <p>₹ {{ "%.2f"|format(today_income) }}</p>
     </div>
 
     <div class="card">
-        <i class="fa-solid fa-file-invoice-dollar"></i>
+        <span class="card-icon expense">💸</span>
         <h3>Today's Expense</h3>
-        <p>₹ {{ today_expense }}</p>
+        <p>₹ {{ "%.2f"|format(today_expense) }}</p>
     </div>
 
     <div class="card">
-        <i class="fa-solid fa-box"></i>
-        <h3>Total Items</h3>
+        <span class="card-icon items">📦</span>
+        <h3>Total Income Entries</h3>
         <p>{{ total_items }}</p>
     </div>
 
     <div class="card">
-        <i class="fa-solid fa-chart-line"></i>
+        <span class="card-icon profit">📈</span>
         <h3>Monthly Profit</h3>
-        <p>₹ {{ monthly_profit }}</p>
+        <p>₹ {{ "%.2f"|format(monthly_profit) }}</p>
     </div>
+
 </div>
 
 {% endblock %}

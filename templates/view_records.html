@@ -35,34 +35,36 @@
     </tr>
 
     {% for i in incomes %}
-    <tr id="row-income-{{ i[0] }}">
+    <!-- Normal Row -->
+    <tr id="income-row-{{ i[0] }}">
         <td>{{ i[1] }}</td>
         <td>{{ i[2] }}</td>
         <td>{{ i[3] }}</td>
         <td>
-            <button onclick="editIncome({{ i[0] }})">Update</button>
+            <button type="button" onclick="showIncomeEdit({{ i[0] }})">Update</button>
             <a href="{{ url_for('delete_income', id=i[0]) }}">Delete</a>
         </td>
     </tr>
 
     <!-- Hidden Edit Row -->
-    <tr id="edit-income-{{ i[0] }}" style="display:none;">
-        <form method="POST" action="{{ url_for('edit_income', id=i[0]) }}">
-            <td>{{ i[1] }}</td>
-            <td>
+    <tr id="income-edit-{{ i[0] }}" style="display:none;">
+        <td colspan="4">
+            <form method="POST" action="{{ url_for('edit_income', id=i[0]) }}">
+                Date: {{ i[1] }} <br><br>
+                Amount:
                 <input type="number" name="amount" value="{{ i[2] }}" required>
-            </td>
-            <td>
+
+                Description:
                 <input type="text" name="description" value="{{ i[3] }}">
-            </td>
-            <td>
+
                 <button type="submit">Save</button>
-                <button type="button" onclick="cancelIncome({{ i[0] }})">Cancel</button>
-            </td>
-        </form>
+                <button type="button" onclick="hideIncomeEdit({{ i[0] }})">Cancel</button>
+            </form>
+        </td>
     </tr>
     {% endfor %}
 </table>
+
 
 
 
@@ -81,58 +83,60 @@
     </tr>
 
     {% for e in expenses %}
-    <tr id="row-expense-{{ e[0] }}">
+    <!-- Normal Row -->
+    <tr id="expense-row-{{ e[0] }}">
         <td>{{ e[1] }}</td>
         <td>{{ e[2] }}</td>
         <td>{{ e[3] }}</td>
         <td>
-            <button onclick="editExpense({{ e[0] }})">Update</button>
+            <button type="button" onclick="showExpenseEdit({{ e[0] }})">Update</button>
             <a href="{{ url_for('delete_expense', id=e[0]) }}">Delete</a>
         </td>
     </tr>
 
     <!-- Hidden Edit Row -->
-    <tr id="edit-expense-{{ e[0] }}" style="display:none;">
-        <form method="POST" action="{{ url_for('edit_expenses', id=e[0]) }}">
-            <td>{{ e[1] }}</td>
-            <td>
+    <tr id="expense-edit-{{ e[0] }}" style="display:none;">
+        <td colspan="4">
+            <form method="POST" action="{{ url_for('edit_expenses', id=e[0]) }}">
+                Date: {{ e[1] }} <br><br>
+                Amount:
                 <input type="number" name="amount" value="{{ e[2] }}" required>
-            </td>
-            <td>
+
+                Purpose:
                 <input type="text" name="description" value="{{ e[3] }}">
-            </td>
-            <td>
+
                 <button type="submit">Save</button>
-                <button type="button" onclick="cancelExpense({{ e[0] }})">Cancel</button>
-            </td>
-        </form>
+                <button type="button" onclick="hideExpenseEdit({{ e[0] }})">Cancel</button>
+            </form>
+        </td>
     </tr>
     {% endfor %}
 </table>
+
 
 
 {% endif %}
 
 {% endblock %}
 <script>
-function editIncome(id) {
-    document.getElementById("row-income-" + id).style.display = "none";
-    document.getElementById("edit-income-" + id).style.display = "";
+function showIncomeEdit(id) {
+    document.getElementById("income-row-" + id).style.display = "none";
+    document.getElementById("income-edit-" + id).style.display = "";
 }
 
-function cancelIncome(id) {
-    document.getElementById("row-income-" + id).style.display = "";
-    document.getElementById("edit-income-" + id).style.display = "none";
+function hideIncomeEdit(id) {
+    document.getElementById("income-row-" + id).style.display = "";
+    document.getElementById("income-edit-" + id).style.display = "none";
 }
 
-function editExpense(id) {
-    document.getElementById("row-expense-" + id).style.display = "none";
-    document.getElementById("edit-expense-" + id).style.display = "";
+function showExpenseEdit(id) {
+    document.getElementById("expense-row-" + id).style.display = "none";
+    document.getElementById("expense-edit-" + id).style.display = "";
 }
 
-function cancelExpense(id) {
-    document.getElementById("row-expense-" + id).style.display = "";
-    document.getElementById("edit-expense-" + id).style.display = "none";
+function hideExpenseEdit(id) {
+    document.getElementById("expense-row-" + id).style.display = "";
+    document.getElementById("expense-edit-" + id).style.display = "none";
 }
 </script>
 

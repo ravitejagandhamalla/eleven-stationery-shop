@@ -2,6 +2,19 @@
 {% block content %}
 
 <h2>Records</h2>
+<div style="margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap;">
+    <a href="{{ url_for('export_filtered_excel', start=request.args.get('start'), end=request.args.get('end')) }}">
+        📊 Export Filtered Excel
+    </a>
+
+    <a href="{{ url_for('export_pdf') }}">
+        📄 Export PDF
+    </a>
+
+    <a href="{{ url_for('download_summary') }}">
+        📥 Download Summary
+    </a>
+</div>
 <div class="record-actions">
     <a href="{{ url_for('export_excel') }}" class="btn-export">
         📊 Export to Excel

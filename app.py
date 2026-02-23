@@ -146,22 +146,23 @@ def income():
         return redirect(url_for("login"))
 
     if request.method == "POST":
+        date = request.form["date"]        # 👈 Get selected date
         amount = request.form["amount"]
         description = request.form["description"]
 
         conn = get_db_connection()
         cur = conn.cursor()
 
-        cur.execute(
-            "INSERT INTO income (user_id, amount, description) VALUES (%s,%s,%s)",
-            (session["user_id"], amount, description),
-        )
+        cur.execute("""
+            INSERT INTO income (user_id, date, amount, description)
+            VALUES (%s, %s, %s, %s)
+        """, (session["user_id"], date, amount, description))
 
         conn.commit()
         cur.close()
         conn.close()
 
-        flash("Income added successfully")
+        flash("Income added successfully", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("income.html")

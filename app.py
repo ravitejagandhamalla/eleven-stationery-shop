@@ -1,5 +1,8 @@
 import os
 import psycopg2
+from openpyxl import Workbook
+from flask import send_file
+import io
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 
 app = Flask(__name__)
@@ -495,6 +498,60 @@ def forgot_password():
         return redirect(url_for("login"))
 
     return render_template("forgot_password.html")
+    # ==============================
+# EXPORT TO EXCEL
+# ==============================
+@app.route("/export_excel")
+def export_excel():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Get income records
+    cur.execute("""
+        SELECT date, amount, description
+        FROM income
+        WHERE user_id=%s
+        ORDER BY date DESC
+    """, (session["user_id"],))
+    incomes = cur.fetchall()
+
+    # Get expense records
+    cur.execute("""
+        SELECT date, amount, purpose
+        FROM expenses
+        WHERE user_id=%s
+        ORDER BY date DESC
+    """, (session["user_id"],))
+    expenses = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Records"
+
+    ws.append(["Type", "Date", "Amount", "Description"])
+
+    for i in incomes:
+        ws.append(["Income", i[0], i[1], i[2]])
+
+    for e in expenses:
+        ws.append(["Expense", e[0], e[1], e[2]])
+
+    file_stream = io.BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+
+    return send_file(
+        file_stream,
+        as_attachment=True,
+        download_name="records.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 
 

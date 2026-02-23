@@ -2,7 +2,15 @@
 {% block content %}
 
 <h2>Records</h2>
+<div class="record-actions">
+    <a href="{{ url_for('export_excel') }}" class="btn-export">
+        📊 Export to Excel
+    </a>
 
+    <button onclick="printRecords()" class="btn-print">
+        🖨 Print
+    </button>
+</div>
 
 <form method="get" action="{{ url_for('view_records') }}">
     <label>Type</label>
@@ -116,5 +124,10 @@ function hideExpenseEdit(id) {
     document.getElementById("expense-row-" + id).style.display = "";
     document.getElementById("expense-edit-" + id).style.display = "none";
 }
+    
+function printRecords() {
+    window.print();
+}
 </script>
+
 

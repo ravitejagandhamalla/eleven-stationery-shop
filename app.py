@@ -2,6 +2,11 @@ import os
 import psycopg2
 from openpyxl import Workbook
 from flask import send_file
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import pagesizes
+import io
 import io
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 
@@ -551,6 +556,177 @@ def export_excel():
         as_attachment=True,
         download_name="records.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    # ==================================
+# EXPORT FILTERED EXCEL (DATE RANGE)
+# ==================================
+@app.route("/export_filtered_excel")
+def export_filtered_excel():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    start = request.args.get("start")
+    end = request.args.get("end")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Income filter
+    income_query = """
+        SELECT date, amount, description
+        FROM income
+        WHERE user_id=%s
+    """
+    expense_query = """
+        SELECT date, amount, purpose
+        FROM expenses
+        WHERE user_id=%s
+    """
+
+    params = [session["user_id"]]
+
+    if start and end:
+        income_query += " AND date BETWEEN %s AND %s"
+        expense_query += " AND date BETWEEN %s AND %s"
+        params += [start, end]
+
+    income_query += " ORDER BY date DESC"
+    expense_query += " ORDER BY date DESC"
+
+    cur.execute(income_query, params)
+    incomes = cur.fetchall()
+
+    cur.execute(expense_query, params)
+    expenses = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    wb = Workbook()
+
+    # ---------------- INCOME SHEET ----------------
+    ws1 = wb.active
+    ws1.title = "Income"
+    ws1.append(["Date", "Amount", "Description"])
+
+    for row in incomes:
+        ws1.append(row)
+
+    # ---------------- EXPENSE SHEET ----------------
+    ws2 = wb.create_sheet("Expenses")
+    ws2.append(["Date", "Amount", "Purpose"])
+
+    for row in expenses:
+        ws2.append(row)
+
+    file_stream = io.BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+
+    return send_file(
+        file_stream,
+        as_attachment=True,
+        download_name="filtered_records.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    # ==================================
+# EXPORT TO PDF
+# ==================================
+@app.route("/export_pdf")
+def export_pdf():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT date, amount FROM income WHERE user_id=%s", (session["user_id"],))
+    incomes = cur.fetchall()
+
+    cur.execute("SELECT date, amount FROM expenses WHERE user_id=%s", (session["user_id"],))
+    expenses = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=pagesizes.A4)
+    elements = []
+
+    styles = getSampleStyleSheet()
+    elements.append(Paragraph("ELEVEN STATIONARY SHOP - Report", styles["Title"]))
+    elements.append(Spacer(1, 20))
+
+    data = [["Type", "Date", "Amount"]]
+
+    for i in incomes:
+        data.append(["Income", str(i[0]), str(i[1])])
+
+    for e in expenses:
+        data.append(["Expense", str(e[0]), str(e[1])])
+
+    table = Table(data)
+    table.setStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+        ('GRID', (0,0), (-1,-1), 1, colors.black)
+    ])
+
+    elements.append(table)
+    doc.build(elements)
+
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="records.pdf",
+        mimetype="application/pdf"
+    )
+    # ==================================
+# DOWNLOAD SUMMARY REPORT
+# ==================================
+@app.route("/download_summary")
+def download_summary():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("SELECT COALESCE(SUM(amount),0) FROM income WHERE user_id=%s",
+                (session["user_id"],))
+    total_income = cur.fetchone()[0]
+
+    cur.execute("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE user_id=%s",
+                (session["user_id"],))
+    total_expense = cur.fetchone()[0]
+
+    profit = total_income - total_expense
+
+    cur.close()
+    conn.close()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=pagesizes.A4)
+    elements = []
+
+    styles = getSampleStyleSheet()
+
+    elements.append(Paragraph("SUMMARY REPORT", styles["Title"]))
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph(f"Total Income: ₹ {total_income}", styles["Normal"]))
+    elements.append(Paragraph(f"Total Expense: ₹ {total_expense}", styles["Normal"]))
+    elements.append(Paragraph(f"Profit: ₹ {profit}", styles["Normal"]))
+
+    doc.build(elements)
+
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name="summary_report.pdf",
+        mimetype="application/pdf"
     )
 
 
